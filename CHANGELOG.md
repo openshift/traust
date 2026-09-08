@@ -1,3 +1,18 @@
+## v0.347.12 — 2026-09-08
+
+### Fixed
+- validate-findings benchmark fixture `secret-exposure.vuln.yaml` plants the
+  VB-SEC-1 canary credential as discrete ConfigMap keys instead of a
+  `postgres://user:pass@host` URL. The URL form tripped the public forge's
+  secret-scanning "Postgres connection string" detector (openshift/traust
+  alert #1) on a value that was never live. Benchmark semantics are
+  unchanged: the ConfigMap still exposes the canary password the oracle
+  greps for, and the safe twin is untouched. Stray mojibake in the fixture
+  header removed.
+- `.github/secret_scanning.yml` excludes the benchmark fixtures directory
+  from forge secret scanning so future planted canaries do not raise
+  alerts.
+
 ## v0.347.11 — 2026-09-08
 
 ### Fixed
