@@ -73,7 +73,7 @@ cd traust && uv sync
 
 No `uv`? `pip install --require-hashes -r requirements.lock`.
 
-`uv sync` pulls the two code dependencies from git tags — `traust-engine`
+`uv sync` pulls the code dependencies from pinned git commits — `traust-engine`
 (scanner adapters, corpus, metrics, reporting, the gateway to the ledger) and
 `traust-contracts` (schemas, enums, shared models) — and, through
 traust-engine, `traust-ledger` (finding identity, Merkle integrity, signing).
