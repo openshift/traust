@@ -1,0 +1,36 @@
+id: aws-lc
+kind: library
+display_name: AWS-LC
+in_plain_english: >
+  AWS-LC supports post-quantum TLS via hybrid key exchange groups.
+  X25519MLKEM768 and SecP256r1MLKEM768 available from v1.37;
+  SecP384r1MLKEM1024 from v1.50. FIPS 140-3 validated with ML-KEM
+  via AWS-LC FIPS 3.0. Used by s2n-tls and aws-lc-rs.
+quantum_tls:
+  by_default:
+    floors: {}
+    name: null
+  if_configured:
+    floors:
+      "X25519MLKEM768": "1.37"
+      "SecP256r1MLKEM768": "1.37"
+      "SecP384r1MLKEM1024": "1.50"
+    names: ["X25519MLKEM768", "SecP256r1MLKEM768", "SecP384r1MLKEM1024"]
+  fips_preferred:
+    floors:
+      "SecP256r1MLKEM768": "1.37"
+      "SecP384r1MLKEM1024": "1.50"
+    names: ["SecP256r1MLKEM768", "SecP384r1MLKEM1024"]
+turn_off: []
+unsupported: []
+details:
+  depends_on: null
+  fips_note: >
+    AWS-LC FIPS 3.0 was the first open-source cryptographic module to
+    include ML-KEM in a FIPS 140-3 validation (earlier certs #4631,
+    #4759, #4816 predate ML-KEM). SecP hybrids place the FIPS-approved
+    ECDH secret first per the draft-ietf-tls-ecdhe-mlkem ordering.
+  policy_modes: null
+  sources:
+    - "https://github.com/aws/aws-lc/blob/main/crypto/fipsmodule/PQREADME.md"
+    - "https://aws.amazon.com/blogs/security/aws-lc-fips-3-0-first-cryptographic-library-to-include-ml-kem-in-fips-140-3-validation/"

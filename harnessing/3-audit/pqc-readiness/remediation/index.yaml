@@ -1,0 +1,81 @@
+# PQC Remediation Recipe Index
+#
+# Maps finding classifications to remediation recipe files.
+# Consumed by the /patch skill's subagent when a finding has
+# category=cryptography or carries a pqc_classification tag.
+#
+# Matching semantics:
+#   - All non-empty `matches` keys must match (AND across dimensions)
+#   - Within a key, any listed value matches (OR within dimension)
+#   - Missing finding field fails that key UNLESS recipe omits the key
+#   - Finding `cwes` (array) matches if any element intersects recipe `cwe` list
+#   - First matching recipe wins — ORDER MATTERS (most specific first)
+#
+# Sub-recipe selection (multi-file entries):
+#   - Language keys (go, python, nodejs, rust): match on source file extension
+#   - Domain keys (runtime-switches, curve-pins, etc.): match on evidence:
+#     * GODEBUG / env vars / JVM properties → runtime-switches
+#     * CurvePreferences / ssl_ecdh_curve / named groups → curve-pins
+#     * crypto-policies / update-crypto-policies → crypto-policy
+#     * certificate / X.509 / CA → certificates
+#     * JWT / token / OIDC / sa-token → tokens
+#     * cosign / sigstore / gpg / sign → code-signing
+#   - Fallback: first key (checklist for signatures, runtime-switches for blockers)
+#
+# actionable: true  — concrete fix patterns exist, generate a diff
+# actionable: false — checklist only, emit NONE with rationale
+
+recipes:
+  # Most specific first: config-level blockers (kill switches, pins, policies)
+  - id: config-blockers
+    description: Configuration that actively prevents PQC negotiation
+    actionable: true
+    matches:
+      pqc_classification: [pqc-blocker-config]
+      category: [cryptography, insecure-workload-config]
+    files:
+      runtime-switches: config-blockers/runtime-switches.md
+      curve-pins: config-blockers/curve-pins.md
+      crypto-policy: config-blockers/crypto-policy.md
+
+  # TLS server — requires `context` to disambiguate from client/blockers
+  - id: tls-ke-server
+    description: TLS server key exchange — honor platform TLS governance, enable ML-KEM negotiation
+    actionable: true
+    matches:
+      pqc_classification: [shor-key-establishment]
+      category: [cryptography, insecure-workload-config]
+      cwe: [CWE-295, CWE-319, CWE-327]
+      context: [tls-server, http-server, grpc-server, webhook-server, metrics-server]
+    files:
+      go: tls-ke-server/go.md
+      python: tls-ke-server/python.md
+      nodejs: tls-ke-server/nodejs.md
+      rust: tls-ke-server/rust.md
+
+  # TLS client — requires `context` to disambiguate from server
+  - id: tls-ke-client
+    description: TLS client key exchange — don't restrict negotiation, allow ML-KEM groups
+    actionable: true
+    matches:
+      pqc_classification: [shor-key-establishment]
+      category: [cryptography]
+      cwe: [CWE-295, CWE-327]
+      context: [tls-client, http-client, grpc-client, db-client]
+    files:
+      go: tls-ke-client/go.md
+      generic: tls-ke-client/generic.md
+
+  # Digital signatures — broad; sub-recipe selection by evidence keywords
+  - id: digital-signatures
+    description: Post-quantum signatures — crypto agility refactoring
+    actionable: true
+    matches:
+      pqc_classification: [shor-signature, clock-2030-parameter]
+      category: [cryptography]
+      cwe: [CWE-327, CWE-328]
+    files:
+      checklist: digital-signatures/checklist.md
+      certificates: digital-signatures/certificates.md
+      code-signing: digital-signatures/code-signing.md
+      tokens: digital-signatures/tokens.md

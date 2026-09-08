@@ -1,0 +1,131 @@
+- id: SSH_RSA_ALGO
+  kind: regex
+  category: SSH
+  severity: high
+  risk: quantum-vulnerable
+  confidence: 0.70
+  migration_hint: Consider ssh-ed25519 and a hybrid PQC key-management strategy.
+  pattern: "\\bssh-rsa\\b"
+  scope: code
+  description: ssh-rsa algorithm usage detected.
+
+- id: SSH_RSA_SHA2_SIGALG
+  kind: regex
+  category: SSH
+  severity: medium
+  risk: quantum-vulnerable
+  confidence: 0.55
+  migration_hint: Define a migration plan toward future PQC-ready signature schemes.
+  pattern: "rsa-sha2-(256|512)"
+  scope: code
+  description: RSA-SHA2 signature algorithm detected in SSH configuration.
+
+- id: SSH_DSS_SIGALG
+  kind: regex
+  category: SSH
+  severity: high
+  risk: non-quantum-risk
+  confidence: 0.80
+  migration_hint: Disable ssh-dss.
+  pattern: "\\bssh-dss\\b"
+  scope: code
+  description: Deprecated ssh-dss usage detected.
+
+- id: SSH_DH_GROUP1
+  kind: regex
+  category: SSH
+  severity: critical
+  risk: non-quantum-risk
+  confidence: 0.85
+  migration_hint: Move to group14+ or modern key-exchange methods.
+  pattern: "diffie-hellman-group1-sha1"
+  scope: code
+  description: Weak SSH KEX group1 detected.
+
+- id: SSH_DH_GROUP14_SHA1
+  kind: regex
+  category: SSH
+  severity: medium
+  risk: non-quantum-risk
+  confidence: 0.60
+  migration_hint: Retire SHA-1 based key exchange.
+  pattern: "diffie-hellman-group14-sha1"
+  scope: code
+  description: SHA-1 dependent SSH KEX detected.
+
+- id: SSH_CONFIG_HOSTKEY_RSA
+  kind: regex
+  category: SSH
+  severity: medium
+  risk: quantum-vulnerable
+  confidence: 0.58
+  migration_hint: Include PQC planning in host key rotation.
+  pattern: "HostKey\\s+.*ssh_host_rsa_key"
+  scope: code
+  description: RSA host key file configured in SSH settings.
+
+- id: SSH_AUTHORIZED_KEYS_RSA
+  kind: regex
+  category: SSH
+  severity: medium
+  risk: quantum-vulnerable
+  confidence: 0.57
+  migration_hint: Gradually rotate RSA keys in authorized_keys.
+  pattern: "(?m)^ssh-rsa\\s+"
+  scope: code
+  description: RSA public key detected in authorized_keys.
+
+- id: PRIVATE_KEY_RSA_HEADER
+  kind: key
+  category: KeyMaterial
+  severity: critical
+  risk: non-quantum-risk
+  confidence: 0.95
+  migration_hint: Rotate exposed private keys immediately and strengthen key handling.
+  pattern: "-----BEGIN RSA PRIVATE KEY-----"
+  scope: keymaterial
+  description: RSA private key header detected.
+
+- id: PRIVATE_KEY_PKCS8_HEADER
+  kind: key
+  category: KeyMaterial
+  severity: critical
+  risk: non-quantum-risk
+  confidence: 0.95
+  migration_hint: Investigate private-key exposure and rotate credentials.
+  pattern: "-----BEGIN PRIVATE KEY-----"
+  scope: keymaterial
+  description: PKCS#8 private key header detected.
+
+- id: PRIVATE_KEY_OPENSSH_HEADER
+  kind: key
+  category: KeyMaterial
+  severity: critical
+  risk: non-quantum-risk
+  confidence: 0.95
+  migration_hint: Treat OpenSSH private-key exposure as an urgent incident.
+  pattern: "-----BEGIN OPENSSH PRIVATE KEY-----"
+  scope: keymaterial
+  description: OpenSSH private key header detected.
+
+- id: DEP_LIBSSH
+  kind: dependency
+  category: SSH
+  severity: low
+  risk: quantum-uncertain
+  confidence: 0.35
+  migration_hint: Audit cryptographic settings in libssh usage.
+  pattern: "(?i)\\blibssh\\b"
+  scope: dependency
+  description: libssh dependency detected.
+
+- id: DEP_PARAMIKO
+  kind: dependency
+  category: SSH
+  severity: low
+  risk: quantum-uncertain
+  confidence: 0.35
+  migration_hint: Inventory key algorithms used with paramiko.
+  pattern: "(?i)\\bparamiko\\b"
+  scope: dependency
+  description: paramiko dependency detected.

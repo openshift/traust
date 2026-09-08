@@ -1,0 +1,61 @@
+# Fleet-fix: pin Konflux Tekton pipelineRef git-resolver revisions.
+#
+# Pattern: the "Konflux mutable-pipelineRef rollup" — .tekton/ pipelines
+# resolve a SHARED pipeline repo (e.g. konflux-build-catalog) at
+# `revision: main`, so whoever controls that repo's main controls every
+# consumer's signed build (supply-chain, CWE-829/494 class). Fix: pin the
+# revision to the shared repo's current HEAD SHA, recorded with a
+# fleet-fix marker so future bumps are deliberate.
+id: konflux-mutable-pipelineref
+pattern_ref: "Konflux mutable-pipelineRef rollup (PROGRESS.md; Tekton git-resolver revision: main)"
+description: >-
+  Rewrites `value: main` (or master) revision params of Tekton git
+  resolvers under .tekton/ to the referenced repository's current HEAD
+  SHA, resolved per-URL at apply time via git ls-remote.
+matcher:
+  kind: pinned_ref_line
+  file_glob:
+    - ".tekton/*.yaml"
+    - ".tekton/*.yml"
+  context_regex: 'name:\s*"?revision"?\s*$'
+  context_window: 2
+  match_regex: '^(\s*)value:\s*"?(main|master)"?\s*$'
+  url_regex: 'value:\s*"?(https://[^"\s]+?)(?:\.git)?"?\s*$'
+  url_window: 8
+resolver:
+  kind: git_ls_remote
+  ref: main
+rewrite:
+  template: "{indent}value: {sha}  # fleet-fix({id}): pinned from {ref} {date}"
+guards:
+  max_files_changed: 12
+  require_clean_tree: true
+tests:
+  - name: pins a git-resolver revision under .tekton/
+    file: .tekton/component-pull-request.yaml
+    before: |
+      apiVersion: tekton.dev/v1
+      kind: PipelineRun
+      spec:
+        pipelineRef:
+          resolver: git
+          params:
+            - name: url
+              value: "https://github.com/example/konflux-build-catalog"
+            - name: revision
+              value: main
+            - name: pathInRepo
+              value: pipelines/docker-build.yaml
+    after_contains:
+      - "value: {sha}  # fleet-fix({id}): pinned from main"
+    after_not_contains:
+      - "value: main"
+  - name: leaves non-revision mains alone
+    file: .tekton/other.yaml
+    before: |
+      spec:
+        params:
+          - name: target-branch
+            value: main
+    after_contains:
+      - "value: main"

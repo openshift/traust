@@ -1,0 +1,103 @@
+"""Command groups for ``traust <group> <op>`` — one module per facade namespace."""
+
+from __future__ import annotations
+
+from traust.cli.groups import (
+    adapters,
+    admin,
+    build,
+    check,
+    compliance,
+    corpus,
+    dashboard,
+    feeds,
+    impact,
+    ledger,
+    metrics,
+    portfolio,
+    registry,
+    reporting,
+    route,
+    sweep,
+    tools,
+    util,
+)
+
+GROUPS: dict[str, dict[str, object]] = {
+    "adapters": {
+        "opengrep": adapters.OPENGREP,
+        "govulncheck": adapters.GOVULNCHECK,
+        "checkov": adapters.CHECKOV,
+        "gitleaks": adapters.GITLEAKS,
+        "osv": adapters.OSV,
+        "yara": adapters.YARA,
+        "joern": adapters.JOERN,
+        "crypto-probe": adapters.CRYPTO_PROBE,
+        "crypto-audit": adapters.CRYPTO_AUDIT,
+    },
+    "admin": dict(admin.ADMIN),
+    "build": dict(build.BUILD),
+    "check": dict(check.CHECK),
+    "compliance": {
+        "dashboard": compliance.DASHBOARD,
+        "scope": compliance.SCOPE,
+    },
+    "corpus": {
+        "findings-db": corpus.FINDINGS_DB,
+        "precedent": corpus.PRECEDENT,
+        "summary": corpus.SUMMARY,
+        "resolve": corpus.RESOLVE,
+        "finding-identity": corpus.FINDING_IDENTITY,
+    },
+    "dashboard": dict(dashboard.DASHBOARD),
+    "feeds": dict(feeds.FEEDS),
+    "impact": {
+        "analyze": impact.ANALYZE,
+        **impact.IMPACT_OPS,
+    },
+    "ledger": dict(ledger.LEDGER),
+    "metrics": {
+        "history": metrics.HISTORY,
+        "spend": metrics.SPEND,
+        "collect-spend": metrics.COLLECT_SPEND,
+        "attribute-spend": metrics.ATTRIBUTE_SPEND,
+        "sla": metrics.SLA,
+    },
+    "registry": {
+        "models": registry.MODELS,
+        "products": registry.PRODUCTS,
+    },
+    "portfolio": {
+        "build": portfolio.BUILD,
+        "deps-multi": portfolio.DEPS_MULTI,
+        "freshness": portfolio.FRESHNESS,
+        "interfaces": portfolio.INTERFACES,
+        "symbols": portfolio.SYMBOLS,
+        "artifacts": portfolio.ARTIFACTS,
+        "stats": portfolio.STATS,
+        "query": portfolio.QUERY,
+        "parsers": portfolio.PARSERS,
+    },
+    "reporting": {
+        "validate": reporting.VALIDATE,
+        "lint": reporting.LINT,
+        "render": reporting.RENDER,
+        "sarif": reporting.SARIF,
+    },
+    "route": dict(route.ROUTE),
+    "sweep": {
+        "collect": sweep.COLLECT,
+        "draft": sweep.DRAFT,
+        "sweep": sweep.SWEEP,
+        "emit": sweep.EMIT,
+        "benchmark": sweep.BENCHMARK,
+        "rule-lane": sweep.RULE_LANE,
+        "mine": sweep.MINE,
+    },
+    "tools": tools.TOOLS,
+    "util": {
+        "redact": util.REDACT,
+        "elf": util.ELF,
+        "safe-exec": util.SAFE_EXEC,
+    },
+}

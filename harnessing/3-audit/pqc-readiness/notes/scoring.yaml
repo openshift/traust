@@ -1,0 +1,21 @@
+# Bucket and effort thresholds.
+# Do not invent scores from quantum_ready alone.
+
+score_ready_min: 80
+score_partial_min: 50
+
+status_to_bucket:
+  ready: ready
+  needs_work: partial
+  blocked: blocked-external
+  not_applicable: not-applicable
+
+effort_labels:
+  - id: blocked-external
+    when: vendored/externalized OR delegated without PQC roadmap
+  - id: significant
+    when: native-first-party AND AGIL blockers
+  - id: moderate
+    when: delegated OR multi-pin constrained OR agile native
+  - id: trivial
+    when: inherited-platform OR single pin

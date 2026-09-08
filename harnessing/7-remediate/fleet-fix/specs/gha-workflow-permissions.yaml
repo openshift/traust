@@ -1,0 +1,119 @@
+# Fleet-fix: add a least-privilege top-level GITHUB_TOKEN permissions
+# block to GitHub Actions workflows that declare none.
+#
+# Pattern: 2026-07 cloud-config Phase-0 sweep, Checkov CKV2_GHA_1
+# (confirmed in 32 repos' *-cloud-config-audit.json; e.g.
+# CCA-acs-fleet-manager-config-001, CCA-releaser-001, CCA-ods-ci-001/-002,
+# CCA-ci-framework-005). A workflow without a top-level `permissions:`
+# key receives the repository/org default GITHUB_TOKEN grant — up to
+# write-all under classic defaults (CWE-250 class). Fix: insert
+# `permissions:\n  contents: read` immediately above the top-level
+# `jobs:` key. Jobs that genuinely need more scope must re-broaden at
+# job level, which is exactly the reviewable, declared state the control
+# asks for.
+#
+# SCOPE LIMITATION (campaign gate, not expressible in this matcher): the
+# pinned_ref_line matcher rewrites the top-level `jobs:` line of EVERY
+# file under .github/workflows/ and cannot test "this file already has a
+# top-level permissions key" (that would double-insert and produce a
+# duplicate-key workflow). Fleet application therefore gates on a
+# deterministic pre-check per repo: apply ONLY to repos whose root
+# workflows uniformly lack a top-level permissions block (15 of the 31
+# clonable fleet repos at apply time); mixed repos are skipped and
+# recorded for a per-file follow-up. Re-runs must repeat the pre-check —
+# the transform is not idempotent on an already-fixed file. Workflows in
+# nested trees (e.g. contributions' ci/GitHub/*/.github/workflows/) are
+# outside the root glob and stay recorded as residue. SHA-pinning of
+# `uses:` actions is deliberately out of scope for this spec.
+#
+# No resolver: this is a pure line rewrite; apply with --pin <40 hex>
+# (value unused by the template) so the applier skips URL resolution.
+id: gha-workflow-permissions
+pattern_ref: "Cloud-config Phase-0 sweep 2026-07: CKV2_GHA_1 — GitHub Actions workflows missing a least-privilege top-level permissions block"
+description: >-
+  Inserts a least-privilege top-level GITHUB_TOKEN grant (permissions:
+  contents: read) immediately above the top-level `jobs:` key of GitHub
+  Actions workflow files. Requires a top-level on:/name-style trigger
+  line above jobs: (context gate). Fleet application is gated on a
+  per-repo uniformity pre-check (no root workflow may already carry a
+  top-level permissions block) because the line matcher cannot express
+  per-file key absence; mixed repos are skipped and recorded.
+matcher:
+  kind: pinned_ref_line
+  file_glob:
+    - ".github/workflows/*.yml"
+    - ".github/workflows/*.yaml"
+  # every real workflow declares a trigger; requiring one above `jobs:`
+  # keeps the rewrite off non-workflow YAML that happens to have a
+  # column-0 jobs: key with nothing above it
+  context_regex: "^(?:on|'on'|\"on\"|true)\\s*:"
+  context_window: 60
+  match_regex: '^()jobs:\s*$'
+rewrite:
+  template: "{indent}permissions:  # fleet-fix({id}): least-privilege GITHUB_TOKEN default ({date})\n{indent}  contents: read\n\n{indent}jobs:"
+guards:
+  max_files_changed: 12
+  require_clean_tree: true
+tests:
+  - name: inserts a contents-read permissions block above top-level jobs
+    file: .github/workflows/ci.yml
+    before: |
+      name: CI
+      on:
+        pull_request:
+        push:
+          branches:
+            - main
+      jobs:
+        lint:
+          runs-on: ubuntu-latest
+          steps:
+            - uses: actions/checkout@v4
+    after_contains:
+      - "permissions:  # fleet-fix({id}): least-privilege GITHUB_TOKEN default"
+      - "  contents: read"
+      - "\n\njobs:\n  lint:"
+  - name: handles quoted 'on' triggers and block-style jobs far below
+    file: .github/workflows/release.yaml
+    before: |
+      name: Release
+      "on":
+        workflow_dispatch:
+          inputs:
+            version:
+              description: version to release
+              required: true
+      env:
+        REGISTRY: quay.io
+      jobs:
+        release:
+          runs-on: ubuntu-latest
+          steps:
+            - uses: actions/checkout@v4
+    after_contains:
+      - "permissions:  # fleet-fix({id})"
+      - "  contents: read"
+    after_not_contains:
+      - "quay.io\njobs:"
+  - name: leaves indented (non-top-level) jobs keys alone
+    file: .github/workflows/values-not-a-trigger.yml
+    before: |
+      config:
+        jobs:
+          - builder
+      settings:
+        jobs: 4
+    after_contains:
+      - "config:"
+    after_not_contains:
+      - "permissions:"
+  - name: leaves a jobs key with no trigger above it alone
+    file: .github/workflows/fragment.yml
+    before: |
+      jobs:
+        noop:
+          runs-on: ubuntu-latest
+    after_contains:
+      - "noop:"
+    after_not_contains:
+      - "permissions:"

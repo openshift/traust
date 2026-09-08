@@ -1,0 +1,34 @@
+id: go
+kind: language
+display_name: Go
+in_plain_english: >
+  Go 1.24 and later use post-quantum TLS by default.
+  For strict FIPS, prefer Go 1.26+ with NIST-curve hybrids.
+quantum_tls:
+  by_default:
+    floors: { "*": "1.24" }
+    name: "X25519MLKEM768"
+  if_configured:
+    floors: {}
+    names: []
+  fips_preferred:
+    floors: { "*": "1.26" }
+    names: ["SecP256r1MLKEM768", "SecP384r1MLKEM1024"]
+turn_off:
+  - { value: "GODEBUG=tlsmlkem=0", direct: true }
+  - { value: "GODEBUG=tlssecpmlkem=0", direct: true }
+unsupported: []
+details:
+  depends_on: null
+  fips_note: >
+    ML-KEM (FIPS 203) is CMVP-validated in Go 1.24's crypto/internal/fips140
+    module and X25519MLKEM768 is permitted under GODEBUG=fips140=on. However,
+    X25519MLKEM768 has no CMVP certificate for the hybrid combination — strict
+    auditors may reject it because X25519 lacks standalone CMVP standing as a
+    KEM component. For regulated environments, prefer SecP256r1MLKEM768 or
+    SecP384r1MLKEM1024 (Go 1.26+) which use NIST curves with clear CMVP lineage.
+  policy_modes: null
+  sources:
+    - "https://go.dev/blog/fips140"
+    - "https://go.dev/doc/go1.24"
+    - "https://go.dev/doc/go1.26"

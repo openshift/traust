@@ -1,0 +1,32 @@
+id: nss
+kind: library
+display_name: NSS
+in_plain_english: >
+  NSS (Mozilla Network Security Services) supports X25519MLKEM768 for
+  TLS 1.3. Enabled by default in Firefox 132+ (desktop). Used by
+  Firefox, Thunderbird, and some Linux applications.
+quantum_tls:
+  by_default:
+    floors: { "firefox": "132" }
+    name: "X25519MLKEM768"
+  if_configured:
+    floors: {}
+    names: ["X25519MLKEM768"]
+  fips_preferred:
+    floors: {}
+    names: []
+turn_off:
+  - { value: "security.tls.enable_kyber=false", direct: true }
+unsupported: []
+details:
+  depends_on: null
+  fips_note: >
+    NSS has its own FIPS 140 validation separate from OpenSSL.
+    PQ group FIPS status in NSS is not yet clear.
+  policy_modes: null
+  versioning_note: >
+    NSS versions don't map cleanly to PQ milestones; Firefox version
+    is the practical floor. QUIC/HTTP3 PQ support added in Firefox 135.
+  sources:
+    - "https://bugzilla.mozilla.org/show_bug.cgi?id=1919097"
+    - "https://qubip.eu/transition-of-nss-and-firefox-to-support-the-quantum-secure-internet-browsing/"

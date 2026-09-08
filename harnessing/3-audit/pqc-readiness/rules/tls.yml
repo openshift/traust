@@ -1,0 +1,142 @@
+- id: TLS_RSA_KEY_EXCHANGE
+  kind: regex
+  category: TLS
+  severity: high
+  risk: quantum-vulnerable
+  confidence: 0.70
+  migration_hint: Move to hybrid KEX such as X25519+Kyber.
+  pattern: "TLS_RSA_"
+  scope: code
+  description: TLS RSA key-exchange suite detected.
+
+- id: TLS_ECDHE_RSA
+  kind: regex
+  category: TLS
+  severity: medium
+  risk: quantum-uncertain
+  confidence: 0.50
+  migration_hint: Plan hybrid PQC key agreement adoption.
+  pattern: "TLS_ECDHE_RSA"
+  scope: code
+  description: TLS_ECDHE_RSA usage detected.
+
+- id: TLS_VERSION_1_0
+  kind: regex
+  category: TLS
+  severity: high
+  risk: non-quantum-risk
+  confidence: 0.75
+  migration_hint: Upgrade to TLS 1.2 or later.
+  pattern: "(?:^|[^A-Za-z0-9])TLSv1(?:\\.0)?(?:$|[^0-9.])"
+  scope: code
+  description: Legacy TLS 1.0 configuration detected.
+
+- id: TLS_VERSION_1_1
+  kind: regex
+  category: TLS
+  severity: high
+  risk: non-quantum-risk
+  confidence: 0.75
+  migration_hint: Upgrade to TLS 1.2 or later.
+  pattern: "TLSv1\\.1"
+  scope: code
+  description: Legacy TLS 1.1 configuration detected.
+
+- id: TLS_RSA_CIPHER_SUITE
+  kind: regex
+  category: TLS
+  severity: high
+  risk: quantum-vulnerable
+  confidence: 0.68
+  migration_hint: Migrate to PQC-ready or hybrid cipher suites.
+  pattern: "TLS_[A-Z0-9_]*_RSA_[A-Z0-9_]*"
+  scope: code
+  description: RSA-based TLS cipher suite detected.
+
+- id: OPENSSL_RSA_API
+  kind: regex
+  category: TLS
+  severity: medium
+  risk: quantum-vulnerable
+  confidence: 0.52
+  migration_hint: Replace with EVP_PKEY-based implementation suitable for PQC migration.
+  pattern: "RSA_(generate_key|public_encrypt|private_decrypt)"
+  scope: code
+  description: OpenSSL RSA API call detected.
+
+- id: GO_TLS_RSA_IMPORT
+  kind: regex
+  category: TLS
+  severity: medium
+  risk: quantum-vulnerable
+  confidence: 0.50
+  migration_hint: Adopt hybrid key agreement in Go implementations.
+  pattern: "\\bcrypto/rsa\\b"
+  scope: code
+  description: Go crypto/rsa usage detected.
+
+- id: JAVA_KEYFACTORY_RSA
+  kind: regex
+  category: TLS
+  severity: medium
+  risk: quantum-vulnerable
+  confidence: 0.50
+  migration_hint: Phase out RSA-dependent key management.
+  pattern: "KeyFactory\\.getInstance\\(\\s*\"RSA\""
+  scope: code
+  description: Java KeyFactory configured for RSA.
+
+- id: NODE_TLS_MIN_VERSION
+  kind: regex
+  category: TLS
+  severity: medium
+  risk: non-quantum-risk
+  confidence: 0.65
+  migration_hint: Set minVersion to TLSv1.2 or later.
+  pattern: "minVersion\\s*:\\s*['\"]TLSv1"
+  scope: code
+  description: Node.js TLS minimum version may be too weak.
+
+- id: DEP_OPENSSL
+  kind: dependency
+  category: TLS
+  severity: medium
+  risk: quantum-uncertain
+  confidence: 0.45
+  migration_hint: Review the OpenSSL PQC roadmap.
+  pattern: "(?i)\\bopenssl\\b"
+  scope: dependency
+  description: OpenSSL dependency detected.
+
+- id: DEP_BOUNCYCASTLE
+  kind: dependency
+  category: TLS
+  severity: medium
+  risk: quantum-uncertain
+  confidence: 0.45
+  migration_hint: Verify BouncyCastle PQC support status.
+  pattern: "(?i)\\bbouncycastle\\b"
+  scope: dependency
+  description: BouncyCastle dependency detected.
+
+- id: DEP_BORINGSSL
+  kind: dependency
+  category: TLS
+  severity: low
+  risk: quantum-uncertain
+  confidence: 0.40
+  migration_hint: Evaluate BoringSSL PQC experiment paths.
+  pattern: "(?i)\\bboringssl\\b"
+  scope: dependency
+  description: BoringSSL dependency detected.
+
+- id: TLS_CERT_PIN_RSA
+  kind: regex
+  category: TLS
+  severity: medium
+  risk: quantum-vulnerable
+  confidence: 0.42
+  migration_hint: Plan PQC migration for certificate pinning targets.
+  pattern: "pin-.*rsa|rsa-pin"
+  scope: code
+  description: RSA certificate pinning configuration detected.

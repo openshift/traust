@@ -1,0 +1,6 @@
+ldap3
+jsonschema
+referencing
+pyyaml
+playwright
+pytest

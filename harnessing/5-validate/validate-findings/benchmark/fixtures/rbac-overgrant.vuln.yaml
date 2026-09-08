@@ -1,0 +1,19 @@
+# VB-RBAC-1 vulnerable: SA can read secrets cluster-wide
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: vb-rbac-sa, namespace: vb-bench}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: {name: vb-rbac-overgrant}
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata: {name: vb-rbac-overgrant}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: vb-rbac-overgrant}
+subjects:
+- {kind: ServiceAccount, name: vb-rbac-sa, namespace: vb-bench}

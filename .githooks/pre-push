@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+#
+# Pre-push guard: block a push whose docs have drifted from the tree OR
+# that re-imports restrictively-licensed framework content.
+#
+# Runs two independent stdlib-only checkers (~0.2s total). Enable once per
+# clone:
+#
+#     git config core.hooksPath .githooks
+#
+# To bypass in an emergency: git push --no-verify
+#
+set -euo pipefail
+
+repo_root="$(git rev-parse --show-toplevel)"
+docs_checker="$repo_root/src/traust/cli/check_docs_consistency.py"
+license_checker="$repo_root/src/traust/cli/check_content_licenses.py"
+
+# FAIL-CLOSED (P1 gate rework 2026-07-31): a missing interpreter or a
+# deleted checker used to skip the gates silently. A broken gate now
+# blocks the push; the deliberate escape hatch stays --no-verify.
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "pre-push: python3 not found — the doc/licensing gates CANNOT" >&2
+  echo "          run, so the push is blocked (fail-closed)." >&2
+  echo "          Install python3, or bypass ONCE with --no-verify." >&2
+  exit 1
+fi
+
+for required in "$docs_checker" "$license_checker"; do
+  if [ ! -f "$required" ]; then
+    echo "pre-push: $required is MISSING — refusing to push without it" >&2
+    echo "          (fail-closed)." >&2
+    exit 1
+  fi
+done
+
+# Same C8 issue as pre-commit: the gates are package modules now, so a bare
+# python3 that is not the repo venv fails on import, not on a violation.
+py="python3"
+if [ -x "$repo_root/.venv/bin/python" ]; then
+  py="$repo_root/.venv/bin/python"
+fi
+
+if ! "$py" "$docs_checker"; then
+  echo "" >&2
+  echo "pre-push: doc-consistency check FAILED -- the docs have drifted from the tree." >&2
+  echo "          Fix the docs (or run the /check-harness-docs skill), then push again." >&2
+  echo "          To bypass: git push --no-verify" >&2
+  exit 1
+fi
+
+if ! "$py" "$license_checker"; then
+  echo "" >&2
+  echo "pre-push: content-license check FAILED -- restrictively-licensed text was re-imported." >&2
+  echo "          Remove the flagged content (see /check-licensing and" >&2
+  echo "          docs/external-dependencies.md), then push again. Do not edit the" >&2
+  echo "          guard patterns to make this pass." >&2
+  echo "          To bypass: git push --no-verify" >&2
+  exit 1
+fi

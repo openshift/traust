@@ -1,0 +1,34 @@
+id: boringssl
+kind: library
+display_name: BoringSSL
+in_plain_english: >
+  BoringSSL supports X25519MLKEM768 by default since April 2026.
+  Used by Chrome, Android, and Go (via BoringCrypto). No version
+  numbers — BoringSSL is rolling release, pinned by commit.
+quantum_tls:
+  by_default:
+    floors: { "*": "2026-04-29" }
+    name: "X25519MLKEM768"
+  if_configured:
+    floors: { "*": "2024-08-27" }
+    names: ["X25519MLKEM768"]
+  fips_preferred:
+    floors: {}
+    names: []
+turn_off: []
+unsupported: []
+details:
+  depends_on: null
+  fips_note: >
+    BoringSSL does not seek standalone FIPS validation; Google uses
+    BoringCrypto (a FIPS module extracted from BoringSSL) for that.
+    golang-fips builds link against BoringCrypto or OpenSSL, not
+    BoringSSL directly.
+  policy_modes: null
+  versioning_note: >
+    BoringSSL has no version numbers. Floors are commit dates.
+    The 2024-08-27 commit added X25519MLKEM768 support.
+    The 2026-04-29 commit enabled it by default.
+  sources:
+    - "https://boringssl.googlesource.com/boringssl/+/7fb4d3da5082225c7180267e9daad291887ce982"
+    - "https://github.com/google/boringssl/commit/e748facbaa5ef6e53aa51c68328e2b2245325e72"

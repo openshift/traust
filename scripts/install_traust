@@ -1,0 +1,383 @@
+#!/usr/bin/env bash
+# install_traust — the starting point for running the harness.
+#
+# The harness reads its operational configuration (which corpus trees exist,
+# product mappings, spend policy, safe-exec allowlists, the ledger signing key,
+# …) from ONE directory named by the environment variable TRAUST_CONFIG_HOME.
+# This repo ships only a template for each file (config/*.example.*). This
+# script:
+#
+#   1. asks where TRAUST_CONFIG_HOME should be (default: ~/.traust/config),
+#   2. creates it and copies every template in under its real filename, plus
+#      the shipped model-registry.yaml, never overwriting a file you already have,
+#   3. offers to record `export TRAUST_CONFIG_HOME=…` in your shell profile,
+#   4. offers to run scripts/install-toolchain.sh for a profile,
+#   5. tells you which files to edit next.
+#
+# Usage:
+#   scripts/install_traust                       # interactive
+#   scripts/install_traust --config-home DIR     # preset the location
+#   scripts/install_traust --yes --toolchain secure-code-audit   # non-interactive
+#   scripts/install_traust --yes --no-toolchain --no-profile-write
+#   scripts/install_traust --doctor [--toolchain PROFILE]        # check an install
+#
+# --doctor verifies: the variable resolves, the directory exists, every
+# required file is present and parses; estate completeness (empty corpus trees,
+# unset location paths); the resolver actually returns paths under that
+# directory; and (via the toolchain doctor) the scanner binaries are present.
+# Exit status 1 on any failure, so it can gate CI.
+#
+# Requires: bash, python3 (with the harness installed — `uv sync` — for the
+# resolver and toolchain checks). Runs on macOS bash 3.2 and Linux.
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+TEMPLATE_DIR="$REPO_ROOT/config"
+TOOLCHAIN_SH="$SCRIPT_DIR/install-toolchain.sh"
+DEFAULT_HOME="${TRAUST_CONFIG_HOME:-$HOME/.traust/config}"
+
+# Required ESTATE files the operator must fill in — these have no sensible
+# shipped default (they describe THIS deployment's corpus and its command
+# allowlists). The authoritative required-set is the contracts MANIFEST; the
+# --doctor `load_context()` smoke is what actually gates. This list only drives
+# the copy step + a friendly presence check, in review order.
+REQUIRED_FILES="corpus-config.yaml safe-exec-profiles.yaml"
+# Optional files (feature-gated in the MANIFEST): a template is seeded as a
+# starting point, but absence is fine. ledger-signing-key.pub is optional too
+# (no key ⇒ the ledger records unsigned; signature verification is skipped) and
+# is NOT copied because its template is instructions, not a key.
+OPTIONAL_FILES="product-definitions-map.yaml budget-policy.yaml rule-pack-allowlist.yaml hardening-risk-weights.json rpm-distgit-watch.yaml internal-vocabulary.yaml locations.yaml remediation.yaml campaign.yaml export.yaml"
+# Files whose template is a real, usable starting point (copied as-is).
+COPYABLE="corpus-config.yaml safe-exec-profiles.yaml product-definitions-map.yaml budget-policy.yaml rule-pack-allowlist.yaml hardening-risk-weights.json rpm-distgit-watch.yaml internal-vocabulary.yaml remediation.yaml campaign.yaml locations.yaml remediation.yaml campaign.yaml export.yaml"
+# Shipped as-is with the harness and ALSO copied into TRAUST_CONFIG_HOME, so a
+# deployment is complete in one directory even where only traust-engine is
+# installed. These are the MANIFEST-required shipped defaults (model router +
+# spend need model-registry; load_context() requires feeds + external-tools).
+# The copy in TRAUST_CONFIG_HOME wins; refresh with --force when the harness
+# updates the shipped one.
+SHIPPED_COPY="model-registry.yaml feeds.yaml external-tools.yaml"
+
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[0;33m'; BOLD='\033[1m'; NC='\033[0m'
+info()  { echo -e "${BOLD}==> $1${NC}"; }
+ok()    { echo -e "  ${GREEN}✓${NC} $1"; }
+warn()  { echo -e "  ${YELLOW}!${NC} $1"; }
+fail()  { echo -e "  ${RED}✗${NC} $1"; }
+
+usage() {
+  sed -n '2,32p' "$0" | sed 's/^# \{0,1\}//'
+  exit "${1:-0}"
+}
+
+# --- Argument parsing ---------------------------------------------------------
+MODE="install"
+ASSUME_YES="false"
+CONFIG_HOME=""
+TOOLCHAIN_PROFILE=""
+RUN_TOOLCHAIN="ask"      # ask | yes | no
+WRITE_PROFILE="ask"      # ask | yes | no
+FORCE="false"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --doctor)           MODE="doctor" ;;
+    --yes|-y)           ASSUME_YES="true" ;;
+    --config-home)      shift; CONFIG_HOME="${1:-}" ;;
+    --config-home=*)    CONFIG_HOME="${1#*=}" ;;
+    --toolchain)        shift; TOOLCHAIN_PROFILE="${1:-}"; RUN_TOOLCHAIN="yes" ;;
+    --toolchain=*)      TOOLCHAIN_PROFILE="${1#*=}"; RUN_TOOLCHAIN="yes" ;;
+    --no-toolchain)     RUN_TOOLCHAIN="no" ;;
+    --no-profile-write) WRITE_PROFILE="no" ;;
+    --force)            FORCE="true" ;;
+    --help|-h)          usage 0 ;;
+    *) echo "Unknown argument: $1" >&2; usage 1 ;;
+  esac
+  shift
+done
+
+# ask VAR "prompt" "default" — honours --yes.
+ask() {
+  local __var="$1" prompt="$2" default="$3" reply
+  if [[ "$ASSUME_YES" == "true" ]]; then
+    printf -v "$__var" '%s' "$default"; return
+  fi
+  read -r -p "$prompt [$default]: " reply
+  printf -v "$__var" '%s' "${reply:-$default}"
+}
+
+# confirm "question" default(y|n) — returns 0 for yes.
+confirm() {
+  local q="$1" d="$2" reply
+  if [[ "$ASSUME_YES" == "true" ]]; then [[ "$d" == "y" ]]; return; fi
+  if [[ "$d" == "y" ]]; then read -r -p "$q [Y/n]: " reply; reply="${reply:-y}"
+  else read -r -p "$q [y/N]: " reply; reply="${reply:-n}"; fi
+  [[ "$reply" =~ ^[Yy] ]]
+}
+
+python_bin() {
+  if [[ -x "$REPO_ROOT/.venv/bin/python" ]]; then echo "$REPO_ROOT/.venv/bin/python"
+  elif command -v python3 >/dev/null 2>&1; then command -v python3
+  else echo ""; fi
+}
+
+shell_profile() {
+  case "$(basename "${SHELL:-}")" in
+    zsh)  echo "$HOME/.zshrc" ;;
+    bash) if [[ -f "$HOME/.bash_profile" ]]; then echo "$HOME/.bash_profile"; else echo "$HOME/.bashrc"; fi ;;
+    fish) echo "$HOME/.config/fish/config.fish" ;;
+    *)    echo "$HOME/.profile" ;;
+  esac
+}
+
+# --- Install ------------------------------------------------------------------
+do_install() {
+  echo ""
+  echo -e "${BOLD}traust — harness configuration setup${NC}"
+  echo "Templates: $TEMPLATE_DIR"
+  echo ""
+
+  if [[ -z "$CONFIG_HOME" ]]; then
+    ask CONFIG_HOME "Where should the harness configuration live (TRAUST_CONFIG_HOME)?" "$DEFAULT_HOME"
+  fi
+  CONFIG_HOME="${CONFIG_HOME/#\~/$HOME}"
+  mkdir -p "$CONFIG_HOME"
+  CONFIG_HOME="$(cd "$CONFIG_HOME" && pwd)"
+  ok "TRAUST_CONFIG_HOME = $CONFIG_HOME"
+
+  info "Copying templates (existing files are kept unless --force)"
+  local copied=0 kept=0
+  for f in $COPYABLE; do
+    local stem="${f%.*}" ext="${f##*.}"
+    local tmpl="$TEMPLATE_DIR/$stem.example.$ext"
+    if [[ ! -f "$tmpl" ]]; then fail "template missing in repo: $tmpl"; exit 1; fi
+    if [[ -f "$CONFIG_HOME/$f" && "$FORCE" != "true" ]]; then
+      warn "kept existing $f"; kept=$((kept+1)); continue
+    fi
+    cp "$tmpl" "$CONFIG_HOME/$f"; ok "wrote $f"; copied=$((copied+1))
+  done
+  for f in $SHIPPED_COPY; do
+    if [[ -f "$CONFIG_HOME/$f" && "$FORCE" != "true" ]]; then
+      warn "kept existing $f (shipped version: $TEMPLATE_DIR/$f)"; kept=$((kept+1))
+    else
+      cp "$TEMPLATE_DIR/$f" "$CONFIG_HOME/$f"; ok "wrote $f (copy of the shipped file)"; copied=$((copied+1))
+    fi
+  done
+  if [[ ! -f "$CONFIG_HOME/ledger-signing-key.pub" ]]; then
+    warn "ledger-signing-key.pub: no template can stand in for a key — generate your own:"
+    sed -n 's/^# \{0,1\}//p' "$TEMPLATE_DIR/ledger-signing-key.example.pub" | sed 's/^/      /'
+  else
+    ok "ledger-signing-key.pub present"
+  fi
+  echo "  ($copied written, $kept kept)"
+
+  # Persist the variable.
+  local prof; prof="$(shell_profile)"
+  local line="export TRAUST_CONFIG_HOME=\"$CONFIG_HOME\""
+  [[ "$(basename "$prof")" == "config.fish" ]] && line="set -gx TRAUST_CONFIG_HOME \"$CONFIG_HOME\""
+  if [[ "$WRITE_PROFILE" != "no" ]] && confirm "Record TRAUST_CONFIG_HOME in $prof?" y; then
+    mkdir -p "$(dirname "$prof")"; touch "$prof"
+    if grep -q "TRAUST_CONFIG_HOME" "$prof" 2>/dev/null; then
+      # replace the existing assignment in place (portable sed: write a temp file)
+      local tmp; tmp="$(mktemp)"
+      grep -v "TRAUST_CONFIG_HOME" "$prof" > "$tmp" || true
+      printf '%s\n' "$line" >> "$tmp"; cat "$tmp" > "$prof"; rm -f "$tmp"
+      ok "updated TRAUST_CONFIG_HOME in $prof"
+    else
+      printf '\n# traust harness configuration (scripts/install_traust)\n%s\n' "$line" >> "$prof"
+      ok "added TRAUST_CONFIG_HOME to $prof"
+    fi
+    warn "open a new shell, or run:  $line"
+  else
+    warn "not persisted — set it yourself before running the harness:  $line"
+  fi
+  export TRAUST_CONFIG_HOME="$CONFIG_HOME"
+
+  # Toolchain.
+  if [[ "$RUN_TOOLCHAIN" == "ask" ]]; then
+    if confirm "Install the scanner toolchain now (scripts/install-toolchain.sh)?" y; then RUN_TOOLCHAIN="yes"; else RUN_TOOLCHAIN="no"; fi
+  fi
+  if [[ "$RUN_TOOLCHAIN" == "yes" ]]; then
+    if [[ -z "$TOOLCHAIN_PROFILE" ]]; then
+      echo "  Profiles: $(bash "$TOOLCHAIN_SH" --help 2>&1 | sed -n 's/^Profiles: //p')"
+      ask TOOLCHAIN_PROFILE "Which profile? (or --all)" "secure-code-audit"
+    fi
+    info "Running install-toolchain.sh $TOOLCHAIN_PROFILE"
+    bash "$TOOLCHAIN_SH" "$TOOLCHAIN_PROFILE"
+  else
+    warn "toolchain skipped — later: scripts/install-toolchain.sh <profile>"
+  fi
+
+  echo ""
+  info "Next steps"
+  echo "  1. Edit the files in $CONFIG_HOME — each file documents its fields."
+  echo "     Start with corpus-config.yaml (register your analysis-results trees)"
+  echo "     and locations.yaml (runtime paths). Run --doctor to see what's unset."
+  echo "  2. Generate your ledger signing key (see the message above)."
+  echo "  3. Verify:  scripts/install_traust --doctor"
+  echo "  Docs: config/README.md, docs/setup.md"
+}
+
+# --- Doctor -------------------------------------------------------------------
+do_doctor() {
+  local failures=0
+  echo ""
+  echo -e "${BOLD}traust — configuration doctor${NC}"
+
+  info "1. Location"
+  local home=""
+  if [[ -n "${TRAUST_CONFIG_HOME:-}" ]]; then
+    home="${TRAUST_CONFIG_HOME/#\~/$HOME}"; ok "TRAUST_CONFIG_HOME is set: $home"
+  elif [[ -d "$HOME/.traust/config" ]]; then
+    home="$HOME/.traust/config"; warn "TRAUST_CONFIG_HOME unset; using the default $home (set it explicitly for CI)"
+  else
+    fail "TRAUST_CONFIG_HOME is unset and $HOME/.traust/config does not exist — run scripts/install_traust"
+    return 1
+  fi
+  if [[ ! -d "$home" ]]; then fail "directory does not exist: $home"; return 1; fi
+  if [[ ! -r "$home" ]]; then fail "directory is not readable: $home"; return 1; fi
+  ok "directory exists and is readable"
+
+  info "2. Required files"
+  local py; py="$(python_bin)"
+  for f in $REQUIRED_FILES; do
+    local p="$home/$f"
+    if [[ ! -f "$p" ]]; then
+      if [[ "$f" == "ledger-signing-key.pub" ]]; then
+        fail "$f missing — generate a cosign key pair (see config/ledger-signing-key.example.pub)"
+      else
+        fail "$f missing — copy config/${f%.*}.example.${f##*.} here and edit it (or re-run install_traust)"
+      fi
+      failures=$((failures+1)); continue
+    fi
+    case "$f" in
+      *.yaml|*.json)
+        if [[ -n "$py" ]] && "$py" - "$p" <<'PYEOF' 2>/dev/null
+import sys, json
+p = sys.argv[1]; t = open(p, encoding="utf-8").read()
+if p.endswith(".json"): json.loads(t)
+else:
+    import yaml; yaml.safe_load(t)
+PYEOF
+        then ok "$f parses"; else fail "$f does not parse"; failures=$((failures+1)); fi ;;
+      *.pub)
+        if command -v openssl >/dev/null 2>&1; then
+          if openssl pkey -pubin -in "$p" -noout >/dev/null 2>&1; then
+            ok "$f is a valid public key (SPKI sha256 $(openssl pkey -pubin -in "$p" -outform DER 2>/dev/null | openssl dgst -sha256 | awk '{print substr($NF,1,16)}')…)"
+          else fail "$f is not a parseable public key"; failures=$((failures+1)); fi
+        else ok "$f present (openssl not found; not validated)"; fi ;;
+    esac
+  done
+
+  for f in $SHIPPED_COPY; do
+    if [[ -f "$home/$f" ]]; then
+      if [[ -n "$py" ]] && "$py" -c "import sys,yaml; yaml.safe_load(open(sys.argv[1]))" "$home/$f" 2>/dev/null; then ok "$f parses (deployment copy; overrides the shipped one)"
+      else fail "$f does not parse"; failures=$((failures+1)); fi
+      if [[ -f "$TEMPLATE_DIR/$f" ]] && ! cmp -s "$home/$f" "$TEMPLATE_DIR/$f"; then
+        warn "$f differs from the shipped copy — intentional override, or stale? (install_traust --force refreshes it)"
+      fi
+    else
+      warn "$f not in TRAUST_CONFIG_HOME — the shipped copy is used, which requires the harness package to be installed (run install_traust to copy it)"
+    fi
+  done
+
+  info "3. Resolver (what the harness will actually read)"
+  if [[ -z "$py" ]]; then
+    fail "python3 not found"; failures=$((failures+1))
+  elif ! TRAUST_CONFIG_HOME="$home" "$py" - "$home" <<'PYEOF'
+import sys
+from pathlib import Path
+home = Path(sys.argv[1]).resolve()
+try:
+    from traust_contracts import optional_config_path
+except ImportError:
+    print("  harness not importable — run `uv sync` in the traust checkout")
+    sys.exit(1)
+names = ["corpus-config.yaml", "product-definitions-map.yaml", "budget-policy.yaml",
+         "safe-exec-profiles.yaml", "rule-pack-allowlist.yaml", "hardening-risk-weights.json",
+         "rpm-distgit-watch.yaml", "internal-vocabulary.yaml", "ledger-signing-key.pub"]
+bad = 0
+for n in names:
+    p = optional_config_path(n)
+    if p is None:
+        # Absent is not a resolver failure — required files are caught by the
+        # engine-load step, optional ones (e.g. ledger-signing-key.pub when
+        # signing is off) are reported by the completeness audit as warnings.
+        print(f"  {n}: absent (optional — see completeness check)")
+    elif p.resolve().parent != home:
+        print(f"  {n}: resolves to {p} (expected under {home})"); bad += 1
+mr = optional_config_path("model-registry.yaml")
+print(f"  model-registry.yaml -> {mr}  ({'present in TRAUST_CONFIG_HOME' if mr is not None else 'MISSING'})")
+sys.exit(1 if bad else 0)
+PYEOF
+  then fail "resolver does not point at $home for every file"; failures=$((failures+1))
+  else ok "every operational file resolves under $home"; fi
+
+  info "4. Engine load (authoritative — exactly what HarnessEngine.load() requires)"
+  if [[ -z "$py" ]]; then
+    warn "skipped (no python)"
+  elif TRAUST_CONFIG_HOME="$home" "$py" - <<'PYEOF'
+import sys
+try:
+    from traust_contracts import load_context, DeploymentConfigMissing
+except ImportError:
+    print("  contracts not importable — run `uv sync`"); sys.exit(1)
+try:
+    ctx = load_context()
+except DeploymentConfigMissing as e:
+    print(f"  load_context() failed: {e}"); sys.exit(1)
+print("  load_context() OK — the engine will start with this config")
+if ctx.signing_pubkey:
+    print("  signing: key present (ledger signatures verified)")
+else:
+    print("  signing: DISABLED — no ledger-signing-key.pub; the ledger records "
+          "unsigned layers and verification is skipped. Provide a key (or "
+          "keyless/OIDC) + LAAS_SIGNING_REQUIRED=1 to enforce integrity.")
+sys.exit(0)
+PYEOF
+  then ok "engine configuration loads"
+  else fail "the engine will NOT start with this config (fill the file named above)"; failures=$((failures+1)); fi
+
+  info "5. Completeness (estate readiness)"
+  if [[ -z "$py" ]]; then
+    warn "skipped (no python)"
+  elif comp=$(TRAUST_CONFIG_HOME="$home" "$py" - <<'PYEOF'
+import sys
+from traust_contracts import config_completeness_audit
+errors, warnings = config_completeness_audit()
+for e in errors:
+    print(f"  ERROR {e}")
+for w in warnings:
+    print(f"  warn  {w}")
+sys.exit(1 if errors else 0)
+PYEOF
+  ); then
+    [[ -n "$comp" ]] && printf '%s\n' "$comp"
+    ok "estate complete — no blocking gaps"
+  else
+    printf '%s\n' "$comp"
+    fail "estate incomplete — resolve the ERROR item(s) above"; failures=$((failures+1))
+  fi
+
+  info "6. Toolchain"
+  if [[ -z "$py" ]]; then
+    warn "skipped (no python)"
+  else
+    local prof="${TOOLCHAIN_PROFILE:-secure-code-audit}"
+    if (cd "$REPO_ROOT" && "$py" -m traust.cli.toolchain doctor --profile "$prof"); then
+      ok "toolchain doctor passed for profile $prof"
+    else
+      fail "toolchain doctor reported problems (profile $prof) — scripts/install-toolchain.sh $prof"
+      failures=$((failures+1))
+    fi
+  fi
+
+  echo ""
+  if [[ $failures -eq 0 ]]; then ok "configuration looks good"; return 0; fi
+  fail "$failures problem(s) found"; return 1
+}
+
+case "$MODE" in
+  install) do_install ;;
+  doctor)  do_doctor ;;
+esac

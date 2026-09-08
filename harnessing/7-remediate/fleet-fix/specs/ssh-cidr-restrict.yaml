@@ -1,0 +1,151 @@
+# Fleet-fix: close world-open SSH ingress in Terraform security groups.
+#
+# Pattern: 2026-07 cloud-config Phase-0 sweep, CKV_AWS_24 class —
+# security-group ingress on port 22 from 0.0.0.0/0 (CWE-284 exposure).
+# Confirmed in 7 repos:
+#   - RHEcosystemAppEng/amq-cob                CCA-amq-cob-001 (critical)
+#   - openshift-sustaining/ocp-sustaining-bot  CCA-ocp-sustaining-bot-001 (critical)
+#   - red-hat-storage/odf-ms-tools             CCA-odf-ms-tools-001 (high)
+#   - quay/quay-performance-scripts            CCA-quay-performance-scripts-001 (critical)
+#   - openshift/rosa-govcloud-quickstart       CCA-rosa-govcloud-quickstart-001 (high)
+#   - ansible/terraform-provider-ansible       CCA-terraform-provider-ansible-004 (low)
+#   - terraform-redhat/terraform-provider-rhcs CCA-terraform-provider-rhcs-005 (medium)
+#
+# Fix: replace the literal `cidr_blocks = ["0.0.0.0/0"]` in port-22
+# ingress rules with `var.allowed_ssh_cidrs`.
+#
+# THIS INTENTIONALLY BREAKS `terraform plan`. The companion variable
+# `allowed_ssh_cidrs` (type list(string)) is declared with NO default:
+# each owner must consciously supply their admin CIDR range before the
+# configuration applies again. A default would silently re-open the
+# hole; the hard stop is the design.
+#
+# APPLY-STAGE COMPANION STEP (outside this matcher, same reviewed diff):
+# the campaign apply step appends the no-default
+# `variable "allowed_ssh_cidrs"` block to variables.tf in each module
+# directory whose file was rewritten (creating variables.tf if absent,
+# skipping if a variable of that name already exists in the module).
+# The single-line matcher can only rewrite the cidr line itself.
+#
+# SCOPE, derived from the findings (shapes verified in the checkouts):
+#   - Matches only a literal one-element ["0.0.0.0/0"] list (optionally
+#     followed by a comment) with a `from_port = 22` line within the 4
+#     preceding lines. Non-22 ingress rules and catch-all egress rules
+#     do not match.
+#   - KNOWN OVER-MATCH: an egress rule whose block also reads
+#     from_port = 22 (quay-performance-scripts network.tf) is rewritten
+#     too — the line matcher cannot see the ingress/egress block opener
+#     and the port lines at once. Golden test 4 documents this; the
+#     reviewer adjudicates that hunk (restricting outbound-22
+#     destinations may not be wanted).
+#   - NO-MATCH by design, recorded as residue for per-repo follow-up:
+#     amq-cob (cidr is var.CIDR_BLOCK_ALL indirection and precedes
+#     from_port) and rosa-govcloud-quickstart
+#     (aws_vpc_security_group_ingress_rule with cidr_ipv4 string — a
+#     different attribute that this template cannot emit).
+#
+# No resolver: pure line rewrite; apply with --pin <40 hex> (value
+# unused by the template) so the applier skips URL resolution.
+id: ssh-cidr-restrict
+pattern_ref: "Cloud-config Phase-0 sweep 2026-07: CKV_AWS_24 class — SSH (22/tcp) ingress from 0.0.0.0/0 in Terraform security groups"
+description: >-
+  Replaces the literal one-element ["0.0.0.0/0"] cidr_blocks list with
+  var.allowed_ssh_cidrs in security-group rules whose from_port is 22,
+  restricted to the exact .tf files cited by the Phase-0 findings. The
+  companion no-default variable "allowed_ssh_cidrs" (type list(string))
+  is appended to the module's variables.tf at the apply stage, so
+  terraform plan intentionally fails until the owning team supplies its
+  admin CIDR range — that hard stop is the design, not a defect.
+matcher:
+  kind: pinned_ref_line
+  # exact file paths cited by the findings' locations
+  file_glob:
+    - "terraform/common/setup_security_groups.tf"        # amq-cob
+    - "scripts/aws/main.tf"                               # ocp-sustaining-bot
+    - "terraform/bastion-host/security.tf"                # odf-ms-tools
+    - "infrastructure/network.tf"                         # quay-performance-scripts
+    - "main.tf"                                           # rosa-govcloud-quickstart
+    - "examples/aws/main.tf"                              # terraform-provider-ansible
+    - "tests/tf-manifests/aws/proxy/main.tf"              # terraform-provider-rhcs
+  context_regex: '^\s*from_port\s*=\s*"?22"?\s*$'
+  # from_port precedes cidr_blocks by at most 3 lines in every cited
+  # block (from_port / to_port / protocol / cidr_blocks)
+  context_window: 4
+  match_regex: '^(\s*)cidr_blocks\s*=\s*\[\s*"0\.0\.0\.0/0"\s*\]\s*(?:#.*)?$'
+rewrite:
+  template: '{indent}cidr_blocks = var.allowed_ssh_cidrs  # fleet-fix({id}): was ["0.0.0.0/0"] — owner must supply admin CIDRs ({date})'
+guards:
+  max_files_changed: 3
+  require_clean_tree: true
+tests:
+  - name: rewrites a classic port-22 ingress rule
+    file: terraform/bastion-host/security.tf
+    before: |
+      resource "aws_security_group" "bastion" {
+        name   = "bastion"
+        vpc_id = var.vpc_id
+
+        ingress {
+          description = "ssh"
+          from_port   = 22
+          to_port     = 22
+          protocol    = "tcp"
+          cidr_blocks = ["0.0.0.0/0"]
+        }
+      }
+    after_contains:
+      - "cidr_blocks = var.allowed_ssh_cidrs  # fleet-fix({id})"
+    after_not_contains:
+      - 'cidr_blocks = ["0.0.0.0/0"]'
+  - name: rewrites when the cidr line carries a trailing comment
+    file: scripts/aws/main.tf
+    before: |
+      resource "aws_security_group" "instance_sg" {
+        vpc_id = aws_vpc.custom_vpc.id
+
+        ingress {
+          from_port   = 22
+          to_port     = 22
+          protocol    = "tcp"
+          cidr_blocks = ["0.0.0.0/0"]  # Allow SSH from anywhere
+        }
+      }
+    after_contains:
+      - "cidr_blocks = var.allowed_ssh_cidrs  # fleet-fix({id})"
+    after_not_contains:
+      - "Allow SSH from anywhere"
+  - name: leaves non-22 ingress and catch-all egress rules alone
+    file: infrastructure/network.tf
+    before: |
+      resource "aws_security_group" "web" {
+        ingress {
+          from_port   = 443
+          to_port     = 443
+          protocol    = "tcp"
+          cidr_blocks = ["0.0.0.0/0"]
+        }
+
+        egress {
+          from_port   = 0
+          to_port     = 0
+          protocol    = "-1"
+          cidr_blocks = ["0.0.0.0/0"]
+        }
+      }
+    after_contains:
+      - 'cidr_blocks = ["0.0.0.0/0"]'
+    after_not_contains:
+      - "allowed_ssh_cidrs"
+  - name: "KNOWN OVER-MATCH: a port-22 egress rule is rewritten too (reviewer adjudicates)"
+    file: examples/aws/main.tf
+    before: |
+      resource "aws_security_group" "ssh_out" {
+        egress {
+          from_port   = 22
+          to_port     = 22
+          protocol    = "tcp"
+          cidr_blocks = ["0.0.0.0/0"]
+        }
+      }
+    after_contains:
+      - "cidr_blocks = var.allowed_ssh_cidrs"

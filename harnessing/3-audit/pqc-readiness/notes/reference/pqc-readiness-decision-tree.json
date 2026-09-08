@@ -1,0 +1,85 @@
+{
+  "tree_version": "1.0.0",
+  "plan": "progress-tracker/plans/pqc-readiness-campaign-plan.md (v1.3, sections 4.3, 4.5-4.7)",
+  "schema": "schema/pqc-decision-tree.schema.json",
+  "provenance_tree": {
+    "_comment": "Ordered rules; first match wins. Conditions reference fact families and provider-census facts from pqc_facts.py.",
+    "rules": [
+      {"provenance": "vendored", "when": "fact paths are vendor-tagged (VENDOR_RX)"},
+      {"provenance": "externalized", "when": "zero crypto facts AND portfolio graph shows sidecar/route TLS termination for the product"},
+      {"provenance": "not-assessable-from-source", "when": "assessment_basis is sbom-only, or bundle/FBC/image-only repo"},
+      {"provenance": "native-first-party", "when": "KE/SIG/KEYGEN call-site facts in first-party paths, or HP_C_OPENSSL_LOWLEVEL facts"},
+      {"provenance": "inherited-constrained", "when": "HP_GROUPS_/HP_POLICY_/HP_ENV_ pin facts present"},
+      {"provenance": "delegated-dependency", "when": "DEP_/HP_FW_ facts only, no first-party algorithm selection"},
+      {"provenance": "inherited-platform", "when": "provider facts present; zero pins; zero direct call sites; C tier EVP-only"}
+    ]
+  },
+  "remediation_effort": {
+    "_comment": "Deterministic mapping, plan v1.3 section 4.5. Keyed by provenance, refined by agility facts.",
+    "rules": [
+      {"effort": "blocked-external", "when": "provenance in [vendored, externalized] OR (delegated-dependency AND library has no PQC roadmap)"},
+      {"effort": "significant", "when": "native-first-party AND (AGIL-1 or AGIL-2 or AGIL-6 = no)"},
+      {"effort": "moderate", "when": "delegated-dependency OR (inherited-constrained AND pin facts > 1) OR (native-first-party AND AGIL-3/6 = yes)"},
+      {"effort": "trivial", "when": "inherited-platform OR (inherited-constrained AND pin facts == 1)"}
+    ],
+    "classes": ["trivial", "moderate", "significant", "blocked-external"]
+  },
+  "readiness_buckets": {
+    "_comment": "Plan v1.3 section 4.6; thresholds are calibration knob 5.",
+    "score_ready_min": 80,
+    "score_partial_min": 50,
+    "rules": [
+      {"bucket": "not-applicable", "when": "zero-hit with coverage assertion, OR sbom-only with all scored checks na"},
+      {"bucket": "blocked-external", "when": "dominant blocking effort class is blocked-external"},
+      {"bucket": "ready", "when": "overall >= 80 AND no 2030-clock items AND PQCA-1 = yes"},
+      {"bucket": "partial", "when": "overall in [50, 80) OR all clock items trivial/moderate"},
+      {"bucket": "not-ready", "when": "overall < 50 OR any significant-effort clock item"}
+    ],
+    "buckets": ["ready", "partial", "not-ready", "blocked-external", "not-applicable"],
+    "bucket_override": [
+      {"override_to": "partial", "when": "overall >= 80 AND any clock_item has blast_radius=fleet AND remediation_effort=significant", "rationale_field": "blast_radius_caveat"}
+    ]
+  },
+  "tls_control_crosswalk": {
+    "_comment": "Readiness vocabulary <-> provenance taxonomy.",
+    "app-controlled": ["native-first-party"],
+    "infra-controlled": ["inherited-platform", "inherited-constrained", "externalized"],
+    "vendor-controlled": ["vendored", "delegated-dependency"]
+  },
+  "fips_interaction": {
+    "_comment": "Plan v1.3 section 4.7 — conditional, never a blanket blocker. When fips_mode=true appears on facts, apply these rules per-provider to determine effective PQC posture under FIPS constraints.",
+    "rules": [
+      {"verdict": "pqc-blocked-by-fips-mode", "when": "fips_mode=true AND provider's PQC algorithms are NOT yet in its FIPS-validated module (see provider_fips_pqc_notes)", "treat_as": "inherited-platform clock item"},
+      {"verdict": "blocked-by-provider-version", "when": "fips_mode=true AND provider version is below PQC minimum even without FIPS", "treat_as": "inherited-platform clock item"},
+      {"verdict": "no-penalty", "when": "fips_mode=true AND provider's FIPS-validated module includes PQC algorithms"},
+      {"verdict": "fips-validation-gap", "when": "fips_mode=true AND third-party PQC library (liboqs, oqs-provider, circl) — not covered by the platform FIPS module", "treat_as": "flag only"}
+    ],
+    "provider_fips_pqc_notes": {
+      "_comment": "Per-provider guidance for the agent to reason about FIPS×PQC interaction. These are reasoning aids, not hardcoded thresholds — verify against current certification status.",
+      "go": "Go 1.24+: ML-KEM (FIPS 203) IS CMVP-validated in Go's crypto/internal/fips140 module, and X25519MLKEM768 is allowed under GODEBUG=fips140=on. However, X25519MLKEM768 has no CMVP certificate for the hybrid combination itself — strict auditors (banking, federal) may reject it because X25519 lacks standalone CMVP standing as a hybrid KEM component. Go >= 1.26: SecP256r1MLKEM768 and SecP384r1MLKEM1024 use NIST curves with clear CMVP lineage — prefer these for regulated environments.",
+      "openssl": "OpenSSL 3.5+: ML-KEM is implemented but FIPS provider certification for PQC is separate from the base module cert. Check whether the specific FIPS provider build (e.g., RHEL's openssl-fips-provider RPM) has PQC in its validated algorithm list.",
+      "jdk": "JDK 24+: ML-KEM (JEP 496) and ML-DSA (JEP 497) are javax.crypto APIs only — NOT TLS key exchange. TLS hybrid KEX (JEP 527) defaults in JDK 27. JCE FIPS providers (e.g., BC-FIPS, Amazon Corretto Crypto) may not yet include PQC in their FIPS-validated boundary. Check the provider's CMVP certificate.",
+      "node": "Node.js uses OpenSSL under the hood — FIPS posture follows the linked OpenSSL FIPS provider. If --enable-fips or --force-fips is active, PQC availability depends on whether the OpenSSL FIPS provider cert covers ML-KEM.",
+      "rustls": "Rust with aws-lc-rs (fips feature): PQC support depends on the aws-lc-fips module version and its CMVP certificate. ring does not support FIPS. Native rustls has no FIPS mode. NOTE: Rust apps using the `openssl` crate (reqwest with native-tls, actix-web with openssl feature) follow system OpenSSL FIPS posture instead — see openssl entry.",
+      "gnutls": "GnuTLS FIPS mode restricts to FIPS-approved algorithms. PQC (ML-KEM) support is experimental and unlikely to be in the FIPS module boundary yet.",
+      "nss": "NSS FIPS mode: check the specific NSS FIPS module version for PQC algorithm inclusion."
+    }
+  },
+  "pqc_classification_map": {
+    "_comment": "usage (from ir8547-mapping.json rule_map) + clock -> per-finding pqc_classification for report.schema.json.",
+    "ke+shor": "shor-key-establishment",
+    "sig+shor": "shor-signature",
+    "any+deprecated_2030": "clock-2030-parameter",
+    "any+classically_broken": "classically-broken",
+    "hndl": "hndl-exposure",
+    "pin-or-killswitch": "pqc-blocker-config",
+    "adopt": "pqc-adoption"
+  },
+  "server_side_caveat": {
+    "_comment": "Infrastructure-governed decision points cannot claim PQC on client toolchain alone.",
+    "rules": [
+      {"caveat": "infra_mlkem_unverified", "when": "governance=infrastructure AND no runtime_evidence for this endpoint", "scoring_ceiling": "partial"},
+      {"caveat": "infra_mlkem_blocked", "when": "governance=infrastructure AND provider openssl < 3.5 in base image or known server version lacks ML-KEM support", "scoring_ceiling": "no"}
+    ]
+  }
+}

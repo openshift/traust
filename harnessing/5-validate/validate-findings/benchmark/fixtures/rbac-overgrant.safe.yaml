@@ -1,0 +1,20 @@
+# VB-RBAC-1 safe twin: same SA, secrets access scoped to its own namespace + named secret
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: vb-rbac-sa, namespace: vb-bench}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: vb-rbac-scoped, namespace: vb-bench}
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  resourceNames: ["vb-app-config"]
+  verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: vb-rbac-scoped, namespace: vb-bench}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: vb-rbac-scoped}
+subjects:
+- {kind: ServiceAccount, name: vb-rbac-sa, namespace: vb-bench}

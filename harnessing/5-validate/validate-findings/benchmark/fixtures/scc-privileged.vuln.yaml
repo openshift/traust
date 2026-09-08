@@ -1,0 +1,16 @@
+# VB-SCC-1 vulnerable: default SA granted use of the privileged SCC
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: vb-scc-priv, namespace: vb-bench}
+rules:
+- apiGroups: ["security.openshift.io"]
+  resources: ["securitycontextconstraints"]
+  resourceNames: ["privileged"]
+  verbs: ["use"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: vb-scc-priv, namespace: vb-bench}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: vb-scc-priv}
+subjects:
+- {kind: ServiceAccount, name: default, namespace: vb-bench}

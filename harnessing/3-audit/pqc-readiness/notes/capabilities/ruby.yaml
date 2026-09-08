@@ -1,0 +1,29 @@
+id: ruby
+kind: language
+display_name: Ruby
+in_plain_english: >
+  Ruby's openssl gem wraps the system OpenSSL. PQ TLS capability is
+  determined by the linked OpenSSL version (3.5+ required). openssl gem
+  4.0.0 adds SSLContext#groups= and SSLSocket#group for explicit
+  hybrid group configuration and inspection.
+quantum_tls:
+  by_default:
+    floors: {}
+    name: null
+  if_configured:
+    floors: { "*": "openssl-3.5" }
+    names: ["X25519MLKEM768", "SecP256r1MLKEM768", "SecP384r1MLKEM1024"]
+  fips_preferred:
+    floors: {}
+    names: []
+turn_off: []
+unsupported: []
+details:
+  depends_on: openssl
+  fips_note: >
+    Ruby defers all crypto to OpenSSL. FIPS posture follows the
+    OpenSSL card and the OS crypto-policy.
+  policy_modes: null
+  sources:
+    - "https://github.com/ruby/openssl/pull/913"
+    - "https://github.com/ruby/openssl/issues/894"

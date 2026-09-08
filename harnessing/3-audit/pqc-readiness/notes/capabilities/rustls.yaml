@@ -1,0 +1,31 @@
+id: rustls
+kind: library
+display_name: rustls
+in_plain_english: >
+  rustls can offer post-quantum TLS from 0.23.22 with aws-lc-rs.
+  From 0.23.27, prefer-post-quantum is on by default when that backend is used.
+quantum_tls:
+  by_default:
+    floors: { "*": "0.23.27" }
+    name: "X25519MLKEM768"
+  if_configured:
+    floors: { "*": "0.23.22" }
+    names: ["X25519MLKEM768"]
+  fips_preferred:
+    floors: {}
+    names: []
+turn_off: []
+unsupported: []
+details:
+  depends_on: aws-lc
+  fips_note: >
+    PQC support with FIPS depends on the aws-lc-fips module version and its
+    CMVP certificate. ring backend does not support FIPS. Native rustls has
+    no FIPS mode.
+  policy_modes: null
+  notes:
+    - "Requires aws-lc-rs provider; ring backend does not provide PQ KEX."
+    - "Rust apps using the `openssl` crate (FFI to system OpenSSL) are NOT covered by this card — their PQC capability follows the system OpenSSL version (see openssl card)."
+    - "native-tls crate on Linux uses OpenSSL; on macOS uses Security.framework (no PQC)."
+  sources:
+    - "https://docs.rs/rustls/"

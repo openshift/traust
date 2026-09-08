@@ -1,0 +1,155 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "report.schema.json",
+  "title": "PQC readiness report",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema_version",
+    "title",
+    "metadata",
+    "summary",
+    "status",
+    "who_sets_tls",
+    "quantum_ready",
+    "why_not",
+    "do_next",
+    "capabilities",
+    "scores",
+    "flags",
+    "provenance_summary",
+    "readiness_bucket"
+  ],
+  "properties": {
+    "schema_version": { "const": 2 },
+    "title": { "type": "string", "minLength": 1 },
+    "metadata": {
+      "type": "object",
+      "required": ["repository", "assessment_basis", "tool"],
+      "properties": {
+        "repository": { "type": "string" },
+        "assessment_basis": {
+          "enum": ["source", "sbom-only", "source+runtime"]
+        },
+        "tool": { "type": "object" }
+      }
+    },
+    "summary": { "type": "string", "minLength": 1 },
+    "status": {
+      "enum": ["ready", "needs_work", "blocked", "not_applicable"]
+    },
+    "who_sets_tls": {
+      "enum": [
+        "this_app",
+        "language_defaults",
+        "platform",
+        "mesh_or_ingress",
+        "external_server",
+        "unknown"
+      ]
+    },
+    "quantum_ready": {
+      "enum": [
+        "yes_by_default",
+        "yes_if_configured",
+        "no",
+        "only_with_fips_curves",
+        "unknown"
+      ]
+    },
+    "why_not": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "do_next": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["who", "do"],
+        "properties": {
+          "who": {
+            "enum": ["platform", "app", "language", "unknown"]
+          },
+          "do": { "type": "string", "minLength": 1 },
+          "how": {
+            "type": "string",
+            "minLength": 1,
+            "$comment": "1–3 sentences distilled from the matching remediation playbook; self-contained; no harness paths"
+          },
+          "locations": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 },
+            "$comment": "repo-relative file:line (or file) anchors so owners can open the right place"
+          }
+        }
+      }
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "kind", "quantum_ready"],
+        "properties": {
+          "id": { "type": "string" },
+          "kind": { "enum": ["language", "library", "os_policy"] },
+          "version": { "type": ["string", "null"] },
+          "quantum_ready": {
+            "enum": [
+              "yes_by_default",
+              "yes_if_configured",
+              "no",
+              "only_with_fips_curves",
+              "unknown"
+            ]
+          }
+        }
+      }
+    },
+    "scores": {
+      "type": "object",
+      "required": ["VULN", "AGIL", "PQCA", "HNDL", "overall"],
+      "properties": {
+        "VULN": { "type": "object" },
+        "AGIL": { "type": "object" },
+        "PQCA": { "type": "object" },
+        "HNDL": { "type": "object" },
+        "overall": { "type": "number" }
+      }
+    },
+    "flags": {
+      "type": "object",
+      "required": [
+        "has_2030_clock_items",
+        "hndl_priority",
+        "runtime_verification_required"
+      ],
+      "properties": {
+        "has_2030_clock_items": { "type": "boolean" },
+        "hndl_priority": { "type": "boolean" },
+        "runtime_verification_required": { "type": "boolean" }
+      }
+    },
+    "provenance_summary": {
+      "type": "object",
+      "required": ["counts", "dominant"],
+      "properties": {
+        "counts": { "type": "object" },
+        "dominant": { "type": "string" }
+      }
+    },
+    "readiness_bucket": {
+      "enum": [
+        "ready",
+        "partial",
+        "not-ready",
+        "blocked-external",
+        "not-applicable"
+      ]
+    },
+    "evidence": { "type": "object" },
+    "clock_items": { "type": "array" },
+    "notes": { "type": ["string", "null"] }
+  }
+}

@@ -1,0 +1,57 @@
+rules:
+  - id: traust-go-injection-exec-taint
+    languages: [go]
+    severity: ERROR
+    message: >-
+      Request-derived value reaches exec.Command without validation — an
+      attacker who controls the parameter controls process arguments (and,
+      via a shell binary, the command line). CWE-78.
+    metadata:
+      cwe: ["CWE-78"]
+      category: injection
+      asvs: ["V1"]
+      confidence: HIGH
+      references:
+        - "campaign cluster: CWE-78 OS Command Injection (371 findings, 317 repos)"
+    mode: taint
+    pattern-sources:
+      - pattern-either:
+          - pattern: $R.URL.Query().Get(...)
+          - pattern: $R.URL.Query()[...]
+          - pattern: $R.FormValue(...)
+          - pattern: $R.PostFormValue(...)
+          - pattern: mux.Vars($R)
+          - pattern: $C.Param(...)
+          - pattern: $C.Query(...)
+    pattern-sinks:
+      - pattern-either:
+          - pattern: exec.Command(...)
+          - pattern: exec.CommandContext(...)
+
+  - id: traust-go-injection-shell-c
+    languages: [go]
+    severity: WARNING
+    message: >-
+      Shell invocation with a non-literal command string ("sh -c" /
+      "bash -c") — command content is composed at run time, so any
+      interpolated value becomes shell syntax. Prefer exec.Command with an
+      argument vector. CWE-78.
+    metadata:
+      cwe: ["CWE-78"]
+      category: injection
+      asvs: ["V1"]
+      confidence: MEDIUM
+      references:
+        - "campaign cluster: CWE-78 OS Command Injection (371 findings, 317 repos)"
+    patterns:
+      - pattern-either:
+          - pattern: exec.Command("sh", "-c", $CMD, ...)
+          - pattern: exec.Command("bash", "-c", $CMD, ...)
+          - pattern: exec.Command("/bin/sh", "-c", $CMD, ...)
+          - pattern: exec.Command("/bin/bash", "-c", $CMD, ...)
+          - pattern: exec.CommandContext($CTX, "sh", "-c", $CMD, ...)
+          - pattern: exec.CommandContext($CTX, "bash", "-c", $CMD, ...)
+      - metavariable-pattern:
+          metavariable: $CMD
+          patterns:
+            - pattern-not: '"..."'

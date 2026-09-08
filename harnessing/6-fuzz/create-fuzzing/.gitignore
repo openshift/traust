@@ -1,0 +1,6 @@
+/clones/
+/logs/
+/reports/
+/pattern-hits.json
+# Results (reports, corpus write-ups, advisories, rollup) live in
+# analysis-results/, NOT here — this repo holds tooling only.

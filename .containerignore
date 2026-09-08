@@ -1,0 +1,19 @@
+# Keep intentionally-vulnerable fixtures and secret-lookalike test payloads
+# out of the OCI artifact (SOURCE_CODE_INTELLIGENCE-fe504cc-012); the
+# runtime skills do not need them.
+harnessing/3-audit/secure-code-audit/gitleaks-rules/fixtures/
+harnessing/4-triage/triage/fixtures/
+**/fixtures/
+**/__pycache__/
+
+# Not needed inside the image
+.git/
+.github/
+.gitlab-ci.yml
+.tekton/
+.claude/
+.crush/
+.githooks/
+tests/
+CHANGELOG.md
+CONTRIBUTING.md

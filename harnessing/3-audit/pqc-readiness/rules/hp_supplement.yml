@@ -1,0 +1,720 @@
+# Hybrid Platforms PQC supplement rule pack (v1)
+# Complements the vendored pqc-scan default rules (pinned be5c760a).
+# Design + rationale: progress-tracker/plans/pqc-readiness-campaign-plan.md Section 4.1.
+# Provider/toolchain/policy/material facts (HP-CHAIN/POLICY/ENV/MAT) are
+# extracted by pqc_facts.py directly; this pack covers source + config regex.
+
+# ---- HP-EC: non-RSA Shor-vulnerable APIs -----------------------------------
+- id: HP_EC_GO_ECDSA
+  kind: regex
+  category: CryptoAPI
+  severity: high
+  risk: quantum-vulnerable
+  confidence: 0.85
+  migration_hint: Plan migration of ECDSA signatures to ML-DSA (FIPS 204).
+  pattern: '\becdsa\.(GenerateKey|Sign|SignASN1|Verify|VerifyASN1)\b'
+  scope: code
+  description: Go crypto/ecdsa usage (quantum-vulnerable signatures).
+
+- id: HP_EC_GO_ECDH_X25519
+  kind: regex
+  category: CryptoAPI
+  severity: high
+  risk: quantum-vulnerable
+  confidence: 0.85
+  migration_hint: Key establishment must move to ML-KEM or hybrid (X25519MLKEM768).
+  pattern: '\becdh\.(P256|P384|P521|X25519)\b|\bx25519\.(X25519|ScalarMult)\b|\bcurve25519\.'
+  scope: code
+  description: Go ECDH/X25519 key-establishment usage.
+
+- id: HP_EC_GO_ED25519_SIGN
+  kind: regex
+  category: CryptoAPI
+  severity: medium
+  risk: quantum-vulnerable
+  confidence: 0.8
+  migration_hint: EdDSA signatures are disallowed after 2035; plan ML-DSA/SLH-DSA.
+  pattern: '\bed25519\.(GenerateKey|Sign)\b'
+  scope: code
+  description: Go Ed25519 signature generation.
+
+- id: HP_EC_JAVA_EC
+  kind: regex
+  category: CryptoAPI
+  severity: high
+  risk: quantum-vulnerable
+  confidence: 0.8
+  migration_hint: Migrate EC key agreement/signatures to ML-KEM/ML-DSA (JDK 24+).
+  pattern: 'KeyPairGenerator\.getInstance\(\s*"(EC|ECDSA|ECDH|XDH|Ed25519|EdDSA|DH|DiffieHellman)"|KeyAgreement\.getInstance\(\s*"(ECDH|XDH|DH|DiffieHellman)"|Signature\.getInstance\(\s*"[A-Za-z0-9]*withECDSA"'
+  scope: code
+  description: Java EC/DH key agreement or ECDSA signature usage.
+
+- id: HP_EC_PY_EC
+  kind: regex
+  category: CryptoAPI
+  severity: high
+  risk: quantum-vulnerable
+  confidence: 0.8
+  migration_hint: Migrate to ML-KEM/ML-DSA via a PQC-capable provider.
+  pattern: '\bec\.generate_private_key\b|\bec\.ECDH\(|\bec\.ECDSA\(|\bX25519PrivateKey\b|\bEd25519PrivateKey\b|\bdh\.generate_parameters\b'
+  scope: code
+  description: Python cryptography EC/DH/X25519/Ed25519 usage.
+
+- id: HP_EC_NODE_EC
+  kind: regex
+  category: CryptoAPI
+  severity: high
+  risk: quantum-vulnerable
+  confidence: 0.75
+  migration_hint: Migrate to ML-KEM/ML-DSA when Node exposes PQC primitives.
+  pattern: 'generateKeyPair(Sync)?\(\s*[\x27"](ec|ed25519|x25519|dh)[\x27"]|createECDH\('
+  scope: code
+  description: Node.js EC/DH/Ed25519/X25519 key generation.
+
+- id: HP_EC_RUST_EC
+  kind: regex
+  category: CryptoAPI
+  severity: medium
+  risk: quantum-vulnerable
+  confidence: 0.7
+  migration_hint: Track PQC support in ring/rustls; plan hybrid KE.
+  pattern: '\bp256::|\bp384::|\bed25519_dalek::|\bx25519_dalek::|EphemeralPrivateKey::generate|agreement::(ECDH_P256|ECDH_P384|X25519)'
+  scope: code
+  description: Rust EC/X25519 crypto crate usage.
+
+# ---- HP-C: C/C++ OpenSSL APIs (EVP vs low-level) ---------------------------
+- id: HP_C_OPENSSL_LOWLEVEL
+  kind: regex
+  category: CryptoAPI
+  severity: high
+  risk: quantum-vulnerable
+  confidence: 0.85
+  migration_hint: >-
+    Low-level OpenSSL APIs bypass providers and cannot inherit PQC; refactor
+    to EVP_* (deprecated since OpenSSL 3.0) before any algorithm migration.
+  pattern: '\b(RSA_generate_key(_ex)?|RSA_new|RSA_public_encrypt|RSA_private_decrypt|RSA_sign|RSA_verify|EC_KEY_new(_by_curve_name)?|EC_KEY_generate_key|ECDSA_do_sign|ECDSA_sign|ECDH_compute_key|DH_new|DH_generate_key|DSA_generate_key)\b'
+  scope: code
+  description: OpenSSL low-level (provider-bypassing) asymmetric API usage — crypto-agility blocker.
+
+- id: HP_C_OPENSSL_EVP_ASYM
+  kind: regex
+  category: CryptoAPI
+  severity: medium
+  risk: quantum-vulnerable
+  confidence: 0.7
+  migration_hint: EVP users inherit provider algorithms; readiness follows the linked OpenSSL version.
+  pattern: '\bEVP_PKEY_(keygen|derive|encrypt|decrypt|sign|verify)(_init)?\b|EVP_PKEY_CTX_new_id\(\s*EVP_PKEY_(RSA|EC|DH|DHX|X25519|ED25519)'
+  scope: code
+  description: OpenSSL EVP asymmetric usage (provider-agile).
+
+# ---- HP-GROUPS: TLS 1.3 group / KEX pins (the hybrid-KEM blockers) ---------
+- id: HP_GROUPS_GO_CURVEPREFERENCES
+  kind: regex
+  category: TLS
+  severity: high
+  risk: quantum-vulnerable
+  confidence: 0.85
+  migration_hint: >-
+    Literal CurvePreferences without X25519MLKEM768 blocks Go's default hybrid
+    key exchange (Go >= 1.24). Remove the pin or include the MLKEM group.
+  pattern: 'CurvePreferences\s*:\s*\[\]'
+  scope: code
+  description: Go tls.Config CurvePreferences pin (blocks hybrid ML-KEM unless MLKEM group included).
+
+- id: HP_GROUPS_NGINX_ECDH_CURVE
+  kind: regex
+  category: TLS
+  severity: high
+  risk: quantum-vulnerable
+  confidence: 0.85
+  migration_hint: ssl_ecdh_curve pins TLS 1.3 groups; include hybrid MLKEM groups or remove.
+  pattern: '(?m)^\s*ssl_ecdh_curve\s+'
+  scope: config
+  description: nginx ssl_ecdh_curve directive (TLS group pin).
+
+- id: HP_GROUPS_HTTPD_OPENSSLCONF
+  kind: regex
+  category: TLS
+  severity: high
+  risk: quantum-vulnerable
+  confidence: 0.8
+  migration_hint: SSLOpenSSLConfCmd Curves/Groups pins TLS 1.3 groups.
+  pattern: 'SSLOpenSSLConfCmd\s+(Curves|Groups)\s+'
+  scope: config
+  description: Apache httpd TLS group pin.
+
+- id: HP_GROUPS_HAPROXY_CURVES
+  kind: regex
+  category: TLS
+  severity: high
+  risk: quantum-vulnerable
+  confidence: 0.8
+  migration_hint: HAProxy curves/ecdhe pins TLS groups; include hybrid groups or remove.
+  pattern: '(?m)^\s*(ssl-default-bind-curves|curves)\s+|\becdhe\s+'
+  scope: config
+  description: HAProxy TLS group pin.
+
+- id: HP_GROUPS_ENVOY_ECDH
+  kind: regex
+  category: TLS
+  severity: high
+  risk: quantum-vulnerable
+  confidence: 0.8
+  migration_hint: Envoy ecdh_curves pins TLS groups; include hybrid groups or remove.
+  pattern: 'ecdh_curves\s*:'
+  scope: config
+  description: Envoy/Istio TLS group pin.
+
+- id: HP_GROUPS_OPENSSL_CNF
+  kind: regex
+  category: TLS
+  severity: high
+  risk: quantum-vulnerable
+  confidence: 0.75
+  migration_hint: openssl.cnf Groups/Curves pins affect every linked consumer.
+  pattern: '(?m)^\s*(Groups|Curves)\s*=\s*'
+  scope: config
+  description: openssl.cnf system-wide TLS group pin.
+
+- id: HP_GROUPS_JAVA_NAMEDGROUPS
+  kind: regex
+  category: TLS
+  severity: high
+  risk: quantum-vulnerable
+  confidence: 0.85
+  migration_hint: jdk.tls.namedGroups pins TLS groups; include ML-KEM groups (JDK 24+) or remove.
+  pattern: 'jdk\.tls\.namedGroups'
+  scope: code
+  description: Java TLS named-groups pin.
+
+- id: HP_GROUPS_SSHD_KEX
+  kind: regex
+  category: SSH
+  severity: medium
+  risk: quantum-vulnerable
+  confidence: 0.8
+  migration_hint: KexAlgorithms pins block PQC kex (sntrup761x25519 / mlkem768x25519).
+  pattern: '(?mi)^\s*KexAlgorithms\s+'
+  scope: config
+  description: sshd/ssh KexAlgorithms pin.
+
+# ---- HP-SIGN: artifact/code-signing infrastructure -------------------------
+- id: HP_SIGN_COSIGN
+  kind: regex
+  category: Signing
+  severity: medium
+  risk: quantum-vulnerable
+  confidence: 0.75
+  migration_hint: >-
+    cosign/sigstore signatures are ECDSA-based; multi-year verification
+    lifetimes make release signing HNDL-relevant. Track sigstore PQC roadmap.
+  pattern: '\bcosign\s+(sign|attest|verify|sign-blob|generate-key-pair)\b|sigstore/(cosign|rekor|fulcio|sigstore-go)|chains\.tekton\.dev|tektoncd/chains'
+  scope: code
+  description: Sigstore/cosign artifact-signing usage.
+
+- id: HP_SIGN_GPG
+  kind: regex
+  category: Signing
+  severity: low
+  risk: quantum-vulnerable
+  confidence: 0.6
+  migration_hint: GPG RSA/DSA signing keys are quantum-vulnerable; long-lived artifact signatures are HNDL-class.
+  pattern: '\bgpg2?\s+(--detach-sign|--sign|--clearsign)\b|rpm\s+--addsign|%_gpg_name'
+  scope: code
+  description: GPG/RPM artifact signing.
+
+# ---- HP-PQC: positive adoption signals --------------------------------------
+- id: HP_PQC_ADOPTION
+  kind: regex
+  category: PQC
+  severity: info
+  risk: quantum-safe
+  confidence: 0.9
+  migration_hint: Record parameter set and security category (1/3/5) in the CBOM.
+  pattern: '(?i)\b(ml-?kem(512|768|1024)?|kyber|ml-?dsa|dilithium|slh-?dsa|sphincs\+?|falcon-?(512|1024)|\bhqc\b|liboqs|oqs-?provider|X25519MLKEM768|mlkem768x25519)\b'
+  scope: code
+  description: Post-quantum algorithm/library adoption signal.
+
+- id: HP_PQC_HBS
+  kind: regex
+  category: PQC
+  severity: info
+  risk: quantum-safe
+  confidence: 0.7
+  migration_hint: SP 800-208 hash-based signatures are approved; verify stateful-key management.
+  pattern: '(?i)\b(xmss(mt)?|\blms\b|\bhss\b)\b'
+  scope: code
+  description: Hash-based signature (LMS/HSS/XMSS) usage signal.
+
+# ---- HP-HASH: classically-broken primitives in code -------------------------
+- id: HP_HASH_BROKEN_GO
+  kind: regex
+  category: Hash
+  severity: medium
+  risk: non-quantum-risk
+  confidence: 0.7
+  migration_hint: MD5/SHA-1/DES/RC4 are classically broken/disallowed; replace regardless of PQC.
+  pattern: '\b(crypto/)?(md5|sha1|des|rc4)\.(New|Sum|NewCipher|NewTripleDESCipher)\b'
+  scope: code
+  description: Go broken-primitive usage (context adjudication required).
+
+- id: HP_HASH_BROKEN_GENERIC
+  kind: regex
+  category: Hash
+  severity: medium
+  risk: non-quantum-risk
+  confidence: 0.6
+  migration_hint: Replace MD5/SHA-1 in any security context; 3DES is disallowed after 2030.
+  pattern: 'MessageDigest\.getInstance\(\s*"(MD5|SHA-?1)"|hashlib\.(md5|sha1)\(|createHash\(\s*[\x27"](md5|sha1)[\x27"]|OpenSSL::Digest::(MD5|SHA1)|\bDES-?EDE3?\b|3DES'
+  scope: code
+  description: Cross-language MD5/SHA-1/3DES usage (context adjudication required).
+
+# ---- HP-CLI: shell/openssl CLI, Lua, Kerberos -------------------------------
+- id: HP_CLI_OPENSSL
+  kind: regex
+  category: CryptoAPI
+  severity: medium
+  risk: quantum-vulnerable
+  confidence: 0.8
+  migration_hint: openssl CLI keygen/signing in scripts is a native crypto decision point.
+  pattern: '\bopenssl\s+(genrsa|genpkey|ecparam|req|x509|dgst\s+-sign|pkeyutl|dhparam)\b'
+  scope: code
+  description: openssl CLI key/cert/signing operations in scripts.
+
+- id: HP_CLI_LUA_RESTY
+  kind: regex
+  category: CryptoAPI
+  severity: medium
+  risk: quantum-vulnerable
+  confidence: 0.7
+  migration_hint: OpenResty/Lua crypto follows linked OpenSSL; census the base image.
+  pattern: 'resty\.rsa|resty\.openssl|luaossl|require\([\x27"]openssl'
+  scope: code
+  description: Lua/OpenResty crypto usage (apicast-class gateways).
+
+- id: HP_CLI_KRB5
+  kind: regex
+  category: Auth
+  severity: low
+  risk: quantum-uncertain
+  confidence: 0.6
+  migration_hint: Kerberos PQC posture follows MIT/Heimdal upstream; inventory only.
+  pattern: '\bgssapi\b|\bkrb5\b|gokrb5|KRB5_KTNAME'
+  scope: code
+  description: Kerberos/GSSAPI usage signal.
+
+# ---- HP-DB: database client TLS ---------------------------------------------
+- id: HP_DB_CLIENT_TLS
+  kind: regex
+  category: TLS
+  severity: low
+  risk: quantum-vulnerable
+  confidence: 0.65
+  migration_hint: DB client channels inherit the driver/linked TLS stack; census the provider and avoid weak modes.
+  pattern: 'sslmode\s*=\s*(disable|allow|prefer|require|verify-ca|verify-full)|useSSL\s*=|sslrootcert|ssl-mode\s*='
+  scope: code
+  description: Database client TLS configuration.
+
+# ---- HP-DYN: runtime-selected algorithms (adjudication) ---------------------
+- id: HP_DYN_GETINSTANCE_VAR
+  kind: regex
+  category: CryptoAPI
+  severity: low
+  risk: quantum-uncertain
+  confidence: 0.4
+  migration_hint: Algorithm chosen at runtime — adjudicate the config source.
+  pattern: '(Cipher|Signature|KeyFactory|KeyPairGenerator|KeyAgreement)\.getInstance\(\s*[A-Za-z_][A-Za-z0-9_.]*\s*[,)]'
+  scope: code
+  description: Java crypto factory with non-literal algorithm argument.
+
+# ---- HP-FW: framework-implicit crypto (dependency manifests) ----------------
+- id: HP_FW_RAILS
+  kind: dependency
+  category: Framework
+  severity: info
+  risk: quantum-uncertain
+  confidence: 0.6
+  migration_hint: Rails signs cookies/sessions implicitly; readiness follows Ruby openssl/base image.
+  pattern: "(?i)pkg:gem/(rails|actionpack)@"
+  scope: dependency
+  description: Rails framework present — implicit crypto consumer.
+
+- id: HP_FW_SPRING_SECURITY
+  kind: dependency
+  category: Framework
+  severity: info
+  risk: quantum-uncertain
+  confidence: 0.6
+  migration_hint: Spring Security performs implicit crypto; readiness follows the JDK.
+  pattern: 'pkg:maven/org\.springframework\.security/'
+  scope: dependency
+  description: Spring Security present — implicit crypto consumer.
+
+- id: HP_FW_DJANGO
+  kind: dependency
+  category: Framework
+  severity: info
+  risk: quantum-uncertain
+  confidence: 0.6
+  migration_hint: Django signs cookies/sessions implicitly; readiness follows Python ssl/base image.
+  pattern: "(?i)pkg:pypi/django@"
+  scope: dependency
+  description: Django framework present — implicit crypto consumer.
+
+# ---- First-party TLS listener census (2026-08-06) ---------------------------
+# Ownership anchors for the who-sets-tls walk: a repo that terminates TLS
+# in-process owns that decision point. Without these facts a first-party TLS
+# server with no vulnerable tokens is invisible and the walk falls through to
+# language_defaults (file-integrity-operator miss, memory pqc-tls-listener-gap).
+
+- id: HP_TLS_LISTENER_GO
+  kind: regex
+  category: TLSConfig
+  severity: info
+  risk: non-quantum-risk
+  confidence: 0.85
+  migration_hint: First-party TLS server — on platforms with a managed TLS profile, verify this listener consumes it (static config = profile non-adherence).
+  pattern: '\b(ListenAndServeTLS|ServeTLS)\s*\(|\btls\.(Listen|NewListener)\s*\('
+  scope: code
+  description: Go TLS listener — the app terminates TLS in-process.
+
+- id: HP_TLS_SERVER_CONFIG_GO
+  kind: regex
+  category: TLSConfig
+  severity: info
+  risk: non-quantum-risk
+  confidence: 0.75
+  migration_hint: Server TLS config constructed in code — check whether it derives from the platform TLS profile or pins a static posture.
+  pattern: '\bTLSConfig\s*:\s*&?[A-Za-z_]|\bSecureTLSConfig\s*\(|\bGetTLSOptions\s*\(|\bTLSOpts\s*:'
+  scope: code
+  description: Go server TLS configuration construction site.
+
+- id: HP_TLS_LISTENER_PY
+  kind: regex
+  category: TLSConfig
+  severity: info
+  risk: non-quantum-risk
+  confidence: 0.75
+  migration_hint: First-party TLS server — verify it follows the platform TLS profile where one exists.
+  pattern: 'ssl\.SSLContext\s*\(\s*ssl\.PROTOCOL_TLS_SERVER|wrap_socket\s*\([^)]*server_side\s*=\s*True'
+  scope: code
+  description: Python TLS listener — the app terminates TLS in-process.
+
+- id: HP_TLS_LISTENER_JS
+  kind: regex
+  category: TLSConfig
+  severity: info
+  risk: non-quantum-risk
+  confidence: 0.75
+  migration_hint: First-party TLS server — verify it follows the platform TLS profile where one exists.
+  pattern: 'https\.createServer\s*\(|tls\.createServer\s*\('
+  scope: code
+  description: Node TLS listener — the app terminates TLS in-process.
+
+- id: HP_TLS_LISTENER_RUST
+  kind: regex
+  category: TLSConfig
+  severity: info
+  risk: non-quantum-risk
+  confidence: 0.75
+  migration_hint: First-party TLS server — verify it follows the platform TLS profile where one exists (openssl/native-tls acceptors preferred over rustls for FIPS).
+  pattern: '\b(TlsAcceptor|SslAcceptor)\b|\brustls::ServerConfig\b|ServerConfig::builder\s*\(|\bbind_(rustls|openssl)\s*\('
+  scope: code
+  description: Rust TLS listener/acceptor — the app terminates TLS in-process (native-tls, openssl, or rustls backend).
+
+# ---- Calibration additions (pilot 2026-07-18; plan v1.3) --------------------
+
+- id: HP_TLS_VERIFY_DISABLED_GO
+  kind: regex
+  category: TLSConfig
+  severity: medium
+  risk: non-quantum-risk
+  confidence: 0.85
+  migration_hint: TLS verification disabled defeats classical AND PQC transport security.
+  pattern: 'InsecureSkipVerify\s*:\s*true'
+  scope: code
+  description: Go TLS certificate verification disabled (4/8 pilot repos).
+
+- id: HP_TLS_VERIFY_DISABLED_JS
+  kind: regex
+  category: TLSConfig
+  severity: medium
+  risk: non-quantum-risk
+  confidence: 0.85
+  migration_hint: Re-enable certificate verification before any PQC transport claim.
+  pattern: 'rejectUnauthorized\s*:\s*false|NODE_TLS_REJECT_UNAUTHORIZED\s*=\s*.?0'
+  scope: code
+  description: Node TLS certificate verification disabled.
+
+- id: HP_TLS_VERIFY_DISABLED_PY
+  kind: regex
+  category: TLSConfig
+  severity: medium
+  risk: non-quantum-risk
+  confidence: 0.8
+  migration_hint: Re-enable certificate verification before any PQC transport claim.
+  pattern: 'verify\s*=\s*False|ssl\._create_unverified_context|CERT_NONE'
+  scope: code
+  description: Python TLS certificate verification disabled.
+
+- id: HP_TLS_VERIFY_DISABLED_CONF
+  kind: regex
+  category: TLSConfig
+  severity: medium
+  risk: non-quantum-risk
+  confidence: 0.8
+  migration_hint: Re-enable certificate verification before any PQC transport claim.
+  pattern: 'ssl_verify\s*[:=]\s*(false|none)|sslverify\s*[:=]\s*(0|false)|insecure-skip-tls-verify\s*[:=]\s*true'
+  scope: code
+  description: Config-level TLS verification disabled (ceph/apicast pilot classes).
+
+- id: HP_HASH_UNAUTH_CIPHER_MODE
+  kind: regex
+  category: CryptoAPI
+  severity: medium
+  risk: non-quantum-risk
+  confidence: 0.75
+  migration_hint: ECB (and MAC-less CBC) are broken independent of the quantum timeline.
+  pattern: 'MODE_ECB|/ECB/|\bNewECBEncrypter\b|EVP_aes_\d+_ecb\b|AES/ECB'
+  scope: code
+  description: Unauthenticated/ECB cipher mode usage.
+
+- id: HP_SEC_SECRET_EMBED
+  kind: regex
+  category: KeyMaterial
+  severity: medium
+  risk: non-quantum-risk
+  confidence: 0.55
+  migration_hint: Embedded signing/session secrets defeat rotation; adjudicate context.
+  pattern: 'SECRET_KEY_BASE\s*[:=]\s*[0-9a-fA-F]{16,}|secret_key_base:\s*[0-9a-f]{16,}'
+  scope: code
+  description: Embedded session/signing secret (porta pilot class; low-confidence, adjudicated).
+
+- id: HP_CLI_OPENSSL_ENC_STATIC_KEY
+  kind: regex
+  category: CLI
+  severity: medium
+  risk: quantum-uncertain
+  confidence: 0.7
+  migration_hint: openssl enc with inline key/passphrase; adjudicate key management.
+  pattern: 'openssl\s+enc\b[^\n]*(-K\s+[0-9A-Fa-f]+|-pass\s)'
+  scope: code
+  description: openssl enc CLI with static key material (recert pilot class).
+
+- id: HP_NET_PLAINTEXT_FETCH
+  kind: regex
+  category: TLSConfig
+  severity: low
+  risk: non-quantum-risk
+  confidence: 0.6
+  migration_hint: Plaintext fetch in build/runtime path; no transport security of any kind.
+  pattern: '\b(curl|wget)\s+(-[\w-]+\s+)*http://[^\s''"]+'
+  scope: code
+  description: Plaintext HTTP fetch in scripts/build files.
+
+- id: HP_EC_PY_RSA_KEYGEN
+  kind: regex
+  category: CryptoAPI
+  severity: high
+  risk: quantum-vulnerable
+  confidence: 0.85
+  migration_hint: RSA keygen is Shor-vulnerable; plan ML-KEM/ML-DSA via provider.
+  pattern: 'rsa\.generate_private_key\s*\('
+  scope: code
+  description: Python cryptography RSA key generation (pilot recall gap).
+
+- id: HP_EC_JAVA_KEYFACTORY
+  kind: regex
+  category: CryptoAPI
+  severity: high
+  risk: quantum-vulnerable
+  confidence: 0.8
+  migration_hint: EC/DH KeyFactory reconstruction is Shor-vulnerable; JDK 24+ for ML-KEM/ML-DSA.
+  pattern: 'KeyFactory\.getInstance\(\s*"(EC|ECDSA|Ed25519|EdDSA|XDH|DH|DiffieHellman)"'
+  scope: code
+  description: Java KeyFactory EC/DH usage (infinispan pilot recall gap).
+
+- id: HP_HASH_RUST_LEGACY
+  kind: regex
+  category: CryptoAPI
+  severity: medium
+  risk: non-quantum-risk
+  confidence: 0.8
+  migration_hint: SHA-1/MD5 are classically broken in security contexts; adjudicate context.
+  pattern: 'use\s+(sha1|md5|md-5)::|\bSha1::new\(|\bMd5::new\('
+  scope: code
+  description: Rust SHA-1/MD5 crate usage (recert pilot recall gap).
+
+- id: HP_C_OPENSSL_EVP_ASYM_DIGESTSIGN
+  kind: regex
+  category: CryptoAPI
+  severity: high
+  risk: quantum-vulnerable
+  confidence: 0.85
+  migration_hint: EVP_DigestSign/Verify with classical keys; provider-agile — migrate keys, not call sites.
+  pattern: 'EVP_DigestSign(Init|Update|Final)?\b|EVP_DigestVerify(Init|Update|Final)?\b'
+  scope: code
+  description: OpenSSL EVP digest-sign family (ceph pilot recall gap; agile tier).
+
+- id: HP_SIGN_MAVEN_GPG
+  kind: regex
+  category: Signing
+  severity: info
+  risk: quantum-vulnerable
+  confidence: 0.75
+  migration_hint: Release artifact GPG signing (classical RSA/EdDSA); HNDL-relevant lifetimes.
+  pattern: "maven-gpg-plugin"
+  scope: code
+  description: Maven GPG release-signing plugin (infinispan pilot class).
+
+- id: HP_FW_RUBY_TLS_CLIENT
+  kind: dependency
+  category: Framework
+  severity: info
+  risk: quantum-uncertain
+  confidence: 0.6
+  migration_hint: Ruby HTTP clients delegate TLS to openssl gem/system; readiness follows base image.
+  pattern: "pkg:gem/(faraday|httparty|rest-client|typhoeus|excon)@"
+  scope: dependency
+  description: Ruby TLS-client gems (porta pilot class; delegated crypto).
+
+- id: HP_DB_CEPH_MSGR2_CRC
+  kind: regex
+  category: TLSConfig
+  severity: medium
+  risk: non-quantum-risk
+  confidence: 0.8
+  migration_hint: msgr2 crc mode is cleartext on the wire; secure mode prerequisite for any PQC transport.
+  pattern: 'ms_(cluster|service|client|mon_cluster|mon_service|mon_client)_mode\s*[:=]\s*crc'
+  scope: code
+  description: Ceph messenger v2 cleartext (crc) mode (ceph pilot class).
+
+- id: HP_DYN_JWT_HS_SHORT_SECRET
+  kind: regex
+  category: CryptoAPI
+  severity: medium
+  risk: non-quantum-risk
+  confidence: 0.5
+  migration_hint: Short HMAC secrets are brute-forceable classically; adjudicate secret provenance.
+  pattern: 'jwt\.sign\([^,\n]+,\s*[''"][^''"]{1,15}[''"]'
+  scope: code
+  description: JWT HS-family signing with short inline secret (low-confidence, adjudicated).
+
+# ---- Calibration v2 (2026-07-19): sweep-proven scanner gaps -----------------
+# Provenance: mapt (pulumi-tls, batch 20), rhc-playbook-verifier +
+# insights-playbooks (GPG, batches 21/23), git-partition-sync-consumer
+# (age, batch 25), compliance-trestle (python Ed25519, batch 30).
+
+- id: HP_KEYGEN_PULUMI_TLS
+  kind: regex
+  category: CryptoAPI
+  severity: high
+  risk: quantum-vulnerable
+  confidence: 0.85
+  migration_hint: Declarative IaC keygen pins the algorithm at provision time; parameterize algorithm/key-size and plan ML-DSA/ed25519 interim.
+  pattern: '\btls\.(NewPrivateKey|NewSelfSignedCert|NewCertRequest|NewLocallySignedCert)\b|\bPrivateKeyArgs\b|\bpulumi_tls\.(PrivateKey|SelfSignedCert)\b'
+  scope: code
+  description: Pulumi-TLS declarative key/cert generation (invisible to imperative-API rules).
+
+- id: HP_SIGN_GPG_VERIFY
+  kind: regex
+  category: Signing
+  severity: medium
+  risk: quantum-vulnerable
+  confidence: 0.75
+  migration_hint: GPG RSA/DSA signature trust rides gnupg (no PQC path); track the issuer-side key migration.
+  pattern: '\bgpg2?\b[^\n]{0,60}--(verify|detach-sign|clear-?sign|sign)\b|\bgpgv\b|\bgnupg\.GPG\b|\binsights_signature\b'
+  scope: code
+  description: GPG signing/verification surface (delegated to gnupg binaries or python-gnupg).
+
+- id: HP_ENC_AGE
+  kind: regex
+  category: CryptoAPI
+  severity: high
+  risk: quantum-vulnerable
+  confidence: 0.8
+  migration_hint: age recipients are X25519 (Shor-vulnerable KE); encrypted-at-rest blobs are HNDL candidates.
+  pattern: 'filippo\.io/age|\bage\.(Encrypt|Decrypt|GenerateX25519Identity|NewX25519(Recipient|Identity)|ParseX25519Identity)\b|age-encryption\.org'
+  scope: code
+  description: age file-encryption usage (X25519 recipient key establishment).
+
+- id: HP_EC_PY_ED25519
+  kind: regex
+  category: CryptoAPI
+  severity: medium
+  risk: quantum-vulnerable
+  confidence: 0.8
+  migration_hint: EdDSA signatures are disallowed after 2035; plan ML-DSA/SLH-DSA.
+  pattern: '\bEd25519(Private|Public)Key\b|\bnacl\.signing\.(SigningKey|VerifyKey)\b|\bed25519\.(SigningKey|VerifyKey)\b'
+  scope: code
+  description: Python Ed25519 sign/verify (pyca cryptography / PyNaCl) — sweep-proven blind spot.
+
+# ---- HP-GOV: Crypto Governance Classification --------------------------------
+# Identifies who governs the crypto decision — platform, mesh, or infrastructure.
+# Agent uses these facts to classify governance per decision point.
+
+- id: HP_GOV_PLATFORM_OCP_CTRLRT
+  kind: regex
+  category: GovernanceClassification
+  severity: info
+  risk: quantum-safe
+  confidence: 0.95
+  migration_hint: Component delegates TLS to OCP platform profile; PQC posture inherited from cluster config.
+  pattern: "controller-runtime-common/pkg/tls|FetchAPIServerTLSProfile|SecurityProfileWatcher|NewTLSConfigFromProfile"
+  scope: code
+  description: Platform-governed TLS via OCP controller-runtime-common.
+
+- id: HP_GOV_PLATFORM_OCP_LIBGO
+  kind: regex
+  category: GovernanceClassification
+  severity: info
+  risk: quantum-safe
+  confidence: 0.95
+  migration_hint: Component delegates TLS to OCP platform profile; PQC posture inherited from cluster config.
+  pattern: "ObserveTLSSecurityProfile|ObserveTLSSecurityProfileWithPaths|ObserveTLSSecurityProfileToArguments"
+  scope: code
+  description: Platform-governed TLS via OCP library-go configobserver.
+
+- id: HP_GOV_PLATFORM_OCP_DIRECT
+  kind: regex
+  category: GovernanceClassification
+  severity: info
+  risk: quantum-safe
+  confidence: 0.85
+  migration_hint: Component reads OCP TLS profile directly; PQC posture inherited from cluster config.
+  pattern: 'apiservers\.config\.openshift\.io|tlsSecurityProfile|TLSSecurityProfile|ShouldHonorClusterTLSProfile'
+  scope: code
+  description: Platform-governed TLS via direct OCP API consumption.
+
+- id: HP_GOV_PLATFORM_OCP_INGRESS
+  kind: regex
+  category: GovernanceClassification
+  severity: info
+  risk: quantum-safe
+  confidence: 0.9
+  migration_hint: Component reads IngressController TLS profile; PQC posture inherited from ingress config.
+  pattern: 'IngressController.*TLSSecurityProfile|ingresscontrollers.*openshift\.io|fromIngress.*TLS|ic\.Spec\.TLSSecurityProfile'
+  scope: code
+  description: Platform-governed TLS sourced from IngressController profile.
+
+- id: HP_GOV_PLATFORM_OCP_KUBELET
+  kind: regex
+  category: GovernanceClassification
+  severity: info
+  risk: quantum-safe
+  confidence: 0.9
+  migration_hint: Component reads KubeletConfig TLS profile; PQC posture inherited from kubelet config.
+  pattern: "KubeletConfig.*TLSSecurityProfile|kubeletconfigs.*machineconfiguration|fromKubelet.*TLS"
+  scope: code
+  description: Platform-governed TLS sourced from KubeletConfig profile.
+
+- id: HP_GOV_PLATFORM_MESH
+  kind: regex
+  category: GovernanceClassification
+  severity: info
+  risk: quantum-safe
+  confidence: 0.8
+  migration_hint: Component relies on service mesh for mTLS; PQC posture inherited from mesh config.
+  pattern: 'DestinationRule.*tls|PeerAuthentication.*mtls|istio.*tls\.mode|envoy.*tls_context'
+  scope: code
+  description: Platform-governed TLS via service mesh (Istio/Envoy).

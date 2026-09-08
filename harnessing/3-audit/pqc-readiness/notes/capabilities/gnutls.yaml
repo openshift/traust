@@ -1,0 +1,33 @@
+id: gnutls
+kind: library
+display_name: GnuTLS
+in_plain_english: >
+  GnuTLS supports hybrid post-quantum TLS when built with leancrypto
+  (preferred) or liboqs. X25519MLKEM768 available from 3.8.8,
+  SecP384r1MLKEM1024 from 3.8.9. Not enabled by default — requires
+  build-time flag and explicit group configuration.
+quantum_tls:
+  by_default:
+    floors: {}
+    name: null
+  if_configured:
+    floors:
+      "X25519MLKEM768": "3.8.8"
+      "SecP256r1MLKEM768": "3.8.8"
+      "SecP384r1MLKEM1024": "3.8.9"
+    names: ["X25519MLKEM768", "SecP256r1MLKEM768", "SecP384r1MLKEM1024"]
+  fips_preferred:
+    floors: {}
+    names: []
+turn_off: []
+unsupported: []
+details:
+  depends_on: null
+  fips_note: >
+    PQ support requires --with-leancrypto or --with-liboqs at build
+    time (liboqs removed in 3.8.13, leancrypto preferred). No
+    standalone FIPS validation for the PQ groups.
+  policy_modes: null
+  sources:
+    - "https://github.com/gnutls/gnutls/blob/3.8.13/NEWS"
+    - "https://lists.gnutls.org/pipermail/gnutls-help/2025-February/004875.html"

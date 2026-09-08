@@ -1,0 +1,29 @@
+rules:
+  - id: traust-python-ssrf-request-taint
+    languages: [python]
+    severity: ERROR
+    message: >-
+      Request-derived value reaches an outbound HTTP call as the URL — the
+      caller can steer server-side requests at internal endpoints. Validate
+      against an allowlist before fetching. CWE-918.
+    metadata:
+      cwe: ["CWE-918"]
+      category: ssrf
+      asvs: ["V4"]
+      confidence: HIGH
+      references:
+        - "campaign cluster: CWE-918 SSRF (339 findings, 286 repos)"
+    mode: taint
+    pattern-sources:
+      - pattern-either:
+          - pattern: request.args.get(...)
+          - pattern: request.args[...]
+          - pattern: request.form.get(...)
+          - pattern: request.json[...]
+    pattern-sinks:
+      - pattern-either:
+          - pattern: requests.get(...)
+          - pattern: requests.post(...)
+          - pattern: requests.request(...)
+          - pattern: urllib.request.urlopen(...)
+          - pattern: httpx.get(...)

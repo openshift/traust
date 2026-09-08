@@ -1,0 +1,29 @@
+id: rhel
+kind: os_policy
+display_name: RHEL crypto-policies
+in_plain_english: >
+  RHEL 9.7 can opt into post-quantum TLS groups; RHEL 10.1 turns them on by default.
+  FIPS mode allows NIST-curve hybrids only, not X25519MLKEM768.
+quantum_tls:
+  by_default:
+    floors: { "*": "10.1" }
+    name: null
+  if_configured:
+    floors: { "*": "9.7" }
+    names: []
+  fips_preferred:
+    floors: {}
+    names: ["SecP256r1MLKEM768", "SecP384r1MLKEM1024"]
+turn_off: []
+unsupported: []
+details:
+  depends_on: null
+  fips_note: >
+    FIPS policies allow SecP256r1MLKEM768 and SecP384r1MLKEM1024; they exclude X25519MLKEM768.
+  policy_modes:
+    pq_opt_in: { since: "9.7", how: "update-crypto-policies --set DEFAULT:PQ" }
+    pq_default: { since: "10.1" }
+    fips_allows: ["SecP256r1MLKEM768", "SecP384r1MLKEM1024"]
+    fips_excludes: ["X25519MLKEM768"]
+  sources:
+    - "https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/"

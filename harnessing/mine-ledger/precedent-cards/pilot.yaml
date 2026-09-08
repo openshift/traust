@@ -1,0 +1,241 @@
+# Semantic precedent cards — example set.
+#
+# A card = one weakness class generalized into a machine-executable
+# enumeration recipe: enumerator + filter predicate over that enumerator's
+# ACTUAL output fields + the one judge question per matched row. Cards compile
+# to worklist generators via
+# python3 -m traust.ops.compile_precedent_cards or are REJECTED —
+# never shipped as prose checklists. Compiler output
+# (sweep-candidates-semantic.json) is the sweep_engine generic-candidate shape;
+# /triage ingests it unchanged and every match is a candidate, never a finding.
+#
+# Validate: python3 -m traust.ops.compile_precedent_cards \
+#             --cards harnessing/mine-ledger/precedent-cards/pilot.yaml \
+#             --validate-only
+# Compile:  ... --repo <checkout> [--card <id>]
+#
+# `source_findings` are illustrative here (EXAMPLE ids). In practice each card
+# cites the confirmed findings it generalizes; the /mine-ledger skill authors
+# new cards from an estate's own ledger.
+
+cards:
+  # -------------------------------------------------------------------
+  # 1. Unguarded-route sibling class: an in-cluster or Route-exposed
+  # HTTP/gRPC server whose registrations carry no in-process guard
+  # because auth was assumed to live in a fronting proxy that an
+  # alternate path bypasses.
+  # -------------------------------------------------------------------
+  - id: pc-unguarded-route-class
+    source_findings:
+      - finding_id: EXAMPLE-0001
+        repo: example-org/example-service
+        note: server binds all interfaces with no in-process auth; a
+          fronting proxy is bypassable on in-cluster paths (CWE-306)
+      - finding_id: EXAMPLE-0002
+        repo: example-org/example-api
+        note: endpoints annotate but never enforce authorization (CWE-862)
+    weakness_shape: >-
+      A route registration carries neither a direct guard nor
+      receiver-scoped auth middleware while sibling registrations in the
+      same server are guarded, or the whole server relies on a fronting
+      proxy that in-cluster/Route traffic can bypass.
+    enumerator: route-guards
+    predicate:
+      all:
+        - field: judgement_required
+          op: truthy
+        - field: guards
+          op: empty
+        - field: scope_guards
+          op: empty
+    judge_question: >-
+      Is this route reachable by a caller who has NOT passed
+      authentication in the shipped deployment (no in-process guard and
+      no enforced fronting proxy on every network path, including
+      in-cluster Service and Route access), and does its handler perform
+      a privileged action or return non-public data?
+    expected_fp_sources:
+      - healthz/readyz/livez/metrics and version endpoints
+        (intentionally public)
+      - guards enforced by a fronting proxy that genuinely fronts every
+        network path (NetworkPolicy-pinned sidecar)
+      - middleware applied via a helper the name-based guard regex does
+        not recognize
+      - dev-only or example servers never shipped
+    severity_hint: high
+
+  # -------------------------------------------------------------------
+  # 2. Plaintext/weak DSN default class: the insecure value is assembled
+  # at deploy time from values chains and code fallbacks, so it only
+  # shows up once the composed default is checked corpus-wide.
+  # -------------------------------------------------------------------
+  - id: pc-dsn-plaintext-default
+    source_findings:
+      - finding_id: EXAMPLE-0003
+        repo: (class-level)
+        note: a DSN/sslmode default that composes to plaintext transport
+          across many repos once swept corpus-wide
+    weakness_shape: >-
+      A database/broker connection default composes to an unencrypted or
+      TLS-optional transport (sslmode=disable/prefer, plaintext scheme)
+      via a values chain or code-side env fallback that no shipped
+      overlay overrides.
+    enumerator: config-matrix
+    predicate:
+      all:
+        - field: class
+          op: eq
+          value: dsn
+        - field: judgement_required
+          op: truthy
+        - any:
+            - field: weak_default
+              op: truthy
+            - field: effective_default
+              op: matches
+              value: >-
+                (ssl_?mode|ssl-mode)=(disable|allow|prefer)
+            - all:
+                # plaintext/TLS-optional scheme with no secure-TLS
+                # marker anywhere in the composed value
+                - field: effective_default
+                  op: matches
+                  value: ^(postgres(ql)?|mysql|redis|amqp|mongodb|http)://
+                - not:
+                    field: effective_default
+                    op: matches
+                    value: >-
+                      (ssl_?mode|ssl-mode)=(require|verify-ca|verify-full)|tls=(true|enabled?)|ssl=(true|enabled?)
+    judge_question: >-
+      Does this composed default reach a production connection path
+      (not test/dev/local-compose only), leaving the data-plane
+      connection unencrypted or downgradable in the shipped deployment?
+    expected_fp_sources:
+      - docker-compose/dev values files never shipped to a cluster
+      - defaults every shipped overlay or operator overrides
+      - in-pod localhost connections (sidecar/unix-socket topologies)
+      - test fixtures and example manifests
+    severity_hint: high
+
+  # -------------------------------------------------------------------
+  # 3. Unauthenticated bind-all listener default class: a service default
+  # binds 0.0.0.0/::/* and authentication is absent or off by default.
+  # -------------------------------------------------------------------
+  - id: pc-anon-bindall-listener-default
+    source_findings:
+      - finding_id: EXAMPLE-0004
+        repo: example-org/example-apiserver
+        note: control-plane API exposed on all interfaces with no
+          authn/authz by default (CWE-306)
+      - finding_id: EXAMPLE-0005
+        repo: example-org/example-daemon
+        note: management API exposed cluster-wide over unauthenticated
+          plaintext by default (CWE-306)
+    weakness_shape: >-
+      A listener/bind configuration defaults to all interfaces (or a
+      wildcard) for a service whose authentication is absent or
+      disabled by default, exposing a privileged control API beyond
+      localhost.
+    enumerator: config-matrix
+    predicate:
+      all:
+        - field: judgement_required
+          op: truthy
+        - any:
+            - all:
+                - field: class
+                  op: eq
+                  value: listener
+                - field: effective_default
+                  op: matches
+                  value: (^|[=:/])0\.0\.0\.0([:,]|$)|^\*$|^\[?::\]?(:\d+)?$
+            - all:
+                - field: class
+                  op: eq
+                  value: auth
+                - field: weak_default
+                  op: truthy
+    judge_question: >-
+      In the shipped deployment, does this default expose a
+      privileged or data-bearing service on a non-loopback interface
+      with no authentication layer between the listener and its
+      network reach (pod network counts as reach)?
+    expected_fp_sources:
+      - web servers meant to bind all interfaces behind an
+        authenticating ingress/oauth-proxy
+      - listeners with TLS client-cert auth configured elsewhere in
+        the chart
+      - metrics/health listeners
+      - dev/compose files never shipped
+    severity_hint: high
+
+  # -------------------------------------------------------------------
+  # 4. Sanitizer-bypass survivor class (execution-shaped). Requires --run
+  # acknowledgment: probing executes repository code in the isolated
+  # audit sandbox only.
+  # -------------------------------------------------------------------
+  - id: pc-sanitizer-bypass-survivor
+    source_findings:
+      - finding_id: EXAMPLE-0006
+        repo: example-org/example-app
+        note: a repo-local sanitizer lets a dangerous token survive for a
+          bypass payload class; callers treat its output as neutralized
+    weakness_shape: >-
+      A repo-local sanitizer/validator lets a dangerous token survive
+      to its output for at least one curated bypass payload class,
+      while callers treat its output as fully neutralized.
+    enumerator: sanitizer-probes
+    enumerator_options:
+      run: true   # EXECUTES repo code — audit-sandbox doctrine applies
+    predicate:
+      all:
+        - field: outcome
+          op: eq
+          value: survived
+        - field: survived
+          op: gte
+          value: 1
+    judge_question: >-
+      Is this sanitizer's output used on a security boundary (template
+      render, shell/SQL/path/HTML sink) where the surviving payload
+      class is the relevant attack, and is there no stronger
+      encoder/validator between it and the sink?
+    expected_fp_sources:
+      - defense-in-depth helpers behind a real context-aware encoder
+      - probe call convention mismatch (function expects pre-parsed or
+        non-string input)
+      - sanitizers for a different threat class than the surviving
+        payload
+      - dead/unreferenced utility functions
+    severity_hint: medium
+
+  # -------------------------------------------------------------------
+  # 5. DELIBERATE REJECT EXAMPLE — a prose checklist wearing a card's
+  # id. Pins the compiler's rejection behavior (zero cards shipped as
+  # prose checklists): no predicate, a prose checklist field, and an
+  # enumerator the harness does not ship. The compiler must refuse it;
+  # expect_reject marks the rejection as the pinned, expected outcome so
+  # validate runs exit 0.
+  # -------------------------------------------------------------------
+  - id: pc-REJECT-oauth-callback-prose
+    expect_reject: true
+    source_findings:
+      - finding_id: EXAMPLE-0007
+        repo: example-org/example-web
+        note: OAuth callback redirects a signed session cookie to an
+          attacker-controlled callbackUrl (CWE-601)
+    weakness_shape: >-
+      OAuth callback handlers may leak session material to
+      attacker-controlled redirect targets.
+    enumerator: manual-review
+    checklist:
+      - look at every OAuth callback handler
+      - check whether callbackUrl/redirect_uri is validated against an
+        allowlist
+      - consider whether cookies could be forwarded
+    judge_question: >-
+      Does any OAuth callback forward credentials to a caller-supplied
+      URL?
+    expected_fp_sources:
+      - allowlisted redirect targets
+    severity_hint: high

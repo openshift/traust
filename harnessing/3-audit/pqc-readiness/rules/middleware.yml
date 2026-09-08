@@ -1,0 +1,208 @@
+- id: K8S_INGRESS_SSL_PROTOCOLS_LEGACY
+  kind: regex
+  category: Middleware
+  severity: high
+  risk: non-quantum-risk
+  confidence: 0.80
+  migration_hint: Restrict Ingress TLS protocols to TLS 1.2+.
+  pattern: "nginx\\.ingress\\.kubernetes\\.io/ssl-protocols\\s*:\\s*['\"]?[^\\n\"]*TLSv1(?:\\.0|\\.1)?(?:$|[^0-9.])"
+  scope: config
+  description: Legacy TLS is enabled in a Kubernetes Ingress annotation.
+
+- id: K8S_INGRESS_RSA_CIPHERS
+  kind: regex
+  category: Middleware
+  severity: high
+  risk: quantum-vulnerable
+  confidence: 0.70
+  migration_hint: Remove RSA key-exchange dependency from Ingress cipher suites.
+  pattern: "nginx\\.ingress\\.kubernetes\\.io/ssl-ciphers\\s*:\\s*['\"]?[^\\n\"]*(RSA|DES-CBC3-SHA|3DES|RC4)"
+  scope: config
+  description: RSA or weak cipher suites are configured in a Kubernetes Ingress annotation.
+
+- id: K8S_GATEWAYAPI_TLSV1
+  kind: regex
+  category: Middleware
+  severity: high
+  risk: non-quantum-risk
+  confidence: 0.65
+  migration_hint: Raise the minimum TLS version in Gateway API configuration.
+  pattern: "minVersion\\s*:\\s*TLSv1(?:\\.0|\\.1)?(?:$|[^0-9.])"
+  scope: config
+  description: TLSv1.x is configured in Kubernetes Gateway settings.
+
+- id: NGINX_SSL_PROTOCOLS_LEGACY
+  kind: regex
+  category: Middleware
+  severity: high
+  risk: non-quantum-risk
+  confidence: 0.85
+  migration_hint: Update nginx ssl_protocols to TLSv1.2 TLSv1.3.
+  pattern: "(?m)^\\s*ssl_protocols\\s+[^;]*(TLSv1(?:\\.0|\\.1)?(?:$|[^0-9.]))"
+  scope: config
+  description: Legacy TLSv1.x is enabled in nginx configuration.
+
+- id: NGINX_SSL_CIPHERS_RSA
+  kind: regex
+  category: Middleware
+  severity: high
+  risk: quantum-vulnerable
+  confidence: 0.74
+  migration_hint: Refresh nginx cipher suites for PQC-hybrid migration readiness.
+  pattern: "(?m)^\\s*ssl_ciphers\\s+[^;]*(RSA|DES-CBC3-SHA|3DES|RC4)"
+  scope: config
+  description: RSA or weak cipher suites detected in nginx configuration.
+
+- id: NGINX_SSL_PREFER_SERVER_CIPHERS_OFF
+  kind: regex
+  category: Middleware
+  severity: medium
+  risk: non-quantum-risk
+  confidence: 0.60
+  migration_hint: Enable server-side cipher preference.
+  pattern: "(?m)^\\s*ssl_prefer_server_ciphers\\s+off\\s*;"
+  scope: config
+  description: Server-side cipher preference is disabled in nginx.
+
+- id: NGINX_PROXY_SSL_PROTOCOLS_LEGACY
+  kind: regex
+  category: Middleware
+  severity: high
+  risk: non-quantum-risk
+  confidence: 0.72
+  migration_hint: Update proxy_ssl_protocols to TLS 1.2+.
+  pattern: "(?m)^\\s*proxy_ssl_protocols\\s+[^;]*(TLSv1(?:\\.0|\\.1)?(?:$|[^0-9.]))"
+  scope: config
+  description: Legacy TLS protocols are enabled for nginx upstream TLS.
+
+- id: HTTPD_SSLPROTOCOL_LEGACY
+  kind: regex
+  category: Middleware
+  severity: high
+  risk: non-quantum-risk
+  confidence: 0.84
+  migration_hint: Restrict Apache SSLProtocol to TLS 1.2+.
+  pattern: "(?m)^\\s*SSLProtocol\\s+.*(TLSv1(?:\\.0|\\.1)?(?:$|[^0-9.]))"
+  scope: config
+  description: Legacy TLSv1.x is enabled in Apache httpd configuration.
+
+- id: HTTPD_SSLCIPHERSUITE_RSA
+  kind: regex
+  category: Middleware
+  severity: high
+  risk: quantum-vulnerable
+  confidence: 0.72
+  migration_hint: Reduce RSA key-exchange dependency in Apache cipher suites.
+  pattern: "(?m)^\\s*SSLCipherSuite\\s+.*(RSA|3DES|RC4|DES)"
+  scope: config
+  description: RSA or weak cipher suites detected in Apache httpd configuration.
+
+- id: HTTPD_SSLHONORCIPHERORDER_OFF
+  kind: regex
+  category: Middleware
+  severity: medium
+  risk: non-quantum-risk
+  confidence: 0.58
+  migration_hint: Set SSLHonorCipherOrder to On.
+  pattern: "(?m)^\\s*SSLHonorCipherOrder\\s+off"
+  scope: config
+  description: Server-side cipher ordering is disabled in Apache.
+
+- id: ENVOY_TLS_MIN_VERSION_LEGACY
+  kind: regex
+  category: Middleware
+  severity: high
+  risk: non-quantum-risk
+  confidence: 0.80
+  migration_hint: Set Envoy tls_minimum_protocol_version to TLSv1_2 or later.
+  pattern: "tls_minimum_protocol_version\\s*:\\s*TLSv1_[01]"
+  scope: config
+  description: Envoy configuration allows TLSv1.0/1.1.
+
+- id: ENVOY_TLS_MAX_VERSION_LEGACY
+  kind: regex
+  category: Middleware
+  severity: medium
+  risk: non-quantum-risk
+  confidence: 0.55
+  migration_hint: Raise Envoy tls_maximum_protocol_version to a modern value.
+  pattern: "tls_maximum_protocol_version\\s*:\\s*TLSv1_[01]"
+  scope: config
+  description: Envoy maximum TLS version is pinned too low.
+
+- id: ENVOY_CIPHER_SUITES_RSA
+  kind: regex
+  category: Middleware
+  severity: high
+  risk: quantum-vulnerable
+  confidence: 0.68
+  migration_hint: Remove RSA-dependent suites from Envoy cipher_suites.
+  pattern: "cipher_suites\\s*:\\s*\\[[^\\]]*(RSA|3DES|RC4)"
+  scope: config
+  description: Envoy TLS cipher suites include RSA or weak ciphers.
+
+- id: ENVOY_SIGNATURE_ALGORITHMS_RSA
+  kind: regex
+  category: Middleware
+  severity: medium
+  risk: quantum-vulnerable
+  confidence: 0.62
+  migration_hint: Reflect PQC migration plans in Envoy signature algorithm settings.
+  pattern: "signature_algorithms\\s*:\\s*\\[[^\\]]*rsa"
+  scope: config
+  description: RSA signature algorithms are explicitly configured in Envoy.
+
+- id: ISTIO_DESTINATIONRULE_TLSV1
+  kind: regex
+  category: Middleware
+  severity: high
+  risk: non-quantum-risk
+  confidence: 0.74
+  migration_hint: Update minimum TLS version in Istio DestinationRule.
+  pattern: "minProtocolVersion\\s*:\\s*TLSV1_[01]"
+  scope: config
+  description: Istio configuration permits TLSv1.0/1.1.
+
+- id: ISTIO_DESTINATIONRULE_RSA_CIPHERS
+  kind: regex
+  category: Middleware
+  severity: high
+  risk: quantum-vulnerable
+  confidence: 0.66
+  migration_hint: Reduce RSA dependency in Istio cipher configuration.
+  pattern: "ciphers\\s*:\\s*\\[[^\\]]*(RSA|3DES|RC4)"
+  scope: config
+  description: RSA or weak cipher suites detected in Istio configuration.
+
+- id: ISTIO_GATEWAY_TLSV1
+  kind: regex
+  category: Middleware
+  severity: high
+  risk: non-quantum-risk
+  confidence: 0.70
+  migration_hint: Modernize TLS protocol settings in Istio Gateway.
+  pattern: "(?s)minProtocolVersion\\s*:\\s*TLSV1_[01]"
+  scope: config
+  description: TLSv1.0/1.1 setting detected in Istio Gateway configuration.
+
+- id: HAPROXY_BIND_TLSV1
+  kind: regex
+  category: Middleware
+  severity: high
+  risk: non-quantum-risk
+  confidence: 0.65
+  migration_hint: Exclude TLSv1.0/1.1 from HAProxy bind options.
+  pattern: "(?m)^\\s*bind\\s+[^\\n]*\\bssl\\b[^\\n]*(tlsv10|tlsv11)"
+  scope: config
+  description: HAProxy configuration explicitly enables TLSv1.0/1.1.
+
+- id: TRAEFIK_TLS_OPTIONS_LEGACY
+  kind: regex
+  category: Middleware
+  severity: medium
+  risk: non-quantum-risk
+  confidence: 0.58
+  migration_hint: Raise minVersion in Traefik TLS options.
+  pattern: "(?i)minversion\\s*:\\s*versiontls1(0|1)"
+  scope: config
+  description: Traefik configuration contains a low minimum TLS version.

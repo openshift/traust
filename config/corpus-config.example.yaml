@@ -1,0 +1,23 @@
+# Corpus ownership configuration ($TRAUST_CONFIG_HOME/corpus-config.yaml).
+# Register which trees under analysis-results/ belong to the report corpus.
+# install_traust --doctor fails while trees is empty.
+#
+# Consumed by python3 -m traust.cli corpus (every dashboard builder). Prefer
+# updating through /corpus-intake rather than by hand.
+#
+# Ownership tags:
+#   owned       — your business unit's backlog
+#   upstream    — upstream community dependencies (supply-chain line)
+#   external-bu — engagements for other business units (Lens 1 only)
+#   harness-qa  — harness self-measurement (excluded from metrics lenses)
+#
+# Example tree entry (uncomment and edit):
+#   findings:
+#     label: your-bu
+#     ownership: owned
+#     business_unit: Your Business Unit
+
+version: 1
+trees: {}
+engagements: {}
+overrides: {}

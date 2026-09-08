@@ -1,0 +1,131 @@
+- id: CERT_RSA_SIGNATURE
+  kind: certificate
+  category: PKI
+  severity: high
+  risk: quantum-vulnerable
+  confidence: 0.72
+  migration_hint: Migrate to ML-DSA or hybrid certificate chains.
+  pattern: "(?i)sha(1|224|256|384|512)WithRSAEncryption|1\\.2\\.840\\.113549\\.1\\.1\\.(5|11|12|13)"
+  scope: certificate
+  description: Certificate signed with an RSA-based algorithm detected.
+
+- id: CERT_SHA1_SIGNATURE
+  kind: certificate
+  category: PKI
+  severity: critical
+  risk: non-quantum-risk
+  confidence: 0.85
+  migration_hint: Upgrade certificate signatures to SHA-256 or stronger.
+  pattern: "(?i)sha1WithRSAEncryption|1\\.2\\.840\\.113549\\.1\\.1\\.5"
+  scope: certificate
+  description: SHA-1 certificate signature detected.
+
+- id: CERT_RSA_1024
+  kind: certificate
+  category: PKI
+  severity: critical
+  risk: non-quantum-risk
+  confidence: 0.88
+  migration_hint: Use 3072-bit+ keys or migrate to PQC.
+  pattern: "\\b1024\\b"
+  scope: certificate
+  description: Certificate with a 1024-bit key detected.
+
+- id: CERT_RSA_2048
+  kind: certificate
+  category: PKI
+  severity: high
+  risk: quantum-vulnerable
+  confidence: 0.78
+  migration_hint: Introduce hybrid certificates.
+  pattern: "\\b2048\\b"
+  scope: certificate
+  description: Certificate with a 2048-bit RSA key detected.
+
+- id: CERT_RSA_3072
+  kind: certificate
+  category: PKI
+  severity: medium
+  risk: quantum-vulnerable
+  confidence: 0.65
+  migration_hint: Run PQC certificate proof-of-concept trials.
+  pattern: "\\b3072\\b"
+  scope: certificate
+  description: Certificate with a 3072-bit RSA key detected.
+
+- id: CERT_ECDSA_SIGNATURE
+  kind: certificate
+  category: PKI
+  severity: medium
+  risk: quantum-uncertain
+  confidence: 0.60
+  migration_hint: Evaluate ML-DSA and SLH-DSA alternatives.
+  pattern: "(?i)ecdsa-with-SHA(256|384|512)|1\\.2\\.840\\.10045\\.4\\.3\\.[234]"
+  scope: certificate
+  description: ECDSA certificate signature detected.
+
+- id: CERT_DSA_SIGNATURE
+  kind: certificate
+  category: PKI
+  severity: high
+  risk: non-quantum-risk
+  confidence: 0.70
+  migration_hint: Decommission DSA usage.
+  pattern: "(?i)dsa|1\\.2\\.840\\.10040"
+  scope: certificate
+  description: DSA-based certificate signature detected.
+
+- id: CERT_MD5_SIGNATURE
+  kind: certificate
+  category: PKI
+  severity: critical
+  risk: non-quantum-risk
+  confidence: 0.90
+  migration_hint: Reissue the certificate immediately.
+  pattern: "(?i)md5|1\\.2\\.840\\.113549\\.1\\.1\\.4"
+  scope: certificate
+  description: MD5 certificate signature detected.
+
+- id: CERT_P12_CONTAINER
+  kind: certificate
+  category: PKI
+  severity: medium
+  risk: quantum-uncertain
+  confidence: 0.35
+  migration_hint: Audit algorithms used inside PKCS#12/PFX containers.
+  pattern: "(?i)\\.(p12|pfx)$"
+  scope: certificate
+  description: PKCS#12/PFX container file detected.
+
+- id: CERT_PEM_CONTAINER
+  kind: certificate
+  category: PKI
+  severity: low
+  risk: quantum-uncertain
+  confidence: 0.30
+  migration_hint: Validate signing algorithms in PEM-based certificates.
+  pattern: "(?i)\\.(pem|crt|cer|der)$"
+  scope: certificate
+  description: Certificate container file detected.
+
+- id: CERT_EXPIRY_2026_OR_BEFORE
+  kind: certificate
+  category: PKI
+  severity: medium
+  risk: non-quantum-risk
+  confidence: 0.25
+  migration_hint: Include PQC migration requirements in renewal plans.
+  pattern: "20(1[0-9]|2[0-6])"
+  scope: certificate
+  description: Certificate metadata suggests a near-term expiration window.
+
+- id: CERT_OID_RSA_PSS
+  kind: certificate
+  category: PKI
+  severity: high
+  risk: quantum-vulnerable
+  confidence: 0.62
+  migration_hint: Plan phased migration to PQC signatures.
+  pattern: "1\\.2\\.840\\.113549\\.1\\.1\\.10"
+  scope: certificate
+  description: RSASSA-PSS OID detected.

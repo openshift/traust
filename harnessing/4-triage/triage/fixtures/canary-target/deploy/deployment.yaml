@@ -1,0 +1,22 @@
+# canary-target: deliberately unhardened manifest for the hardening-verdict
+# canary (f006). The gaps below are accurate but carry no concrete exploit
+# path — the expected triage verdict is `hardening`, never `false_positive`.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: canary-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: canary
+  template:
+    metadata:
+      labels:
+        app: canary
+    spec:
+      containers:
+        - name: canary
+          image: quay.io/example/canary:latest
+          ports:
+            - containerPort: 8080

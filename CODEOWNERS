@@ -1,0 +1,29 @@
+# Gate-integrity code owners (P1 gate rework 2026-07-31, assessment
+# root-cause 2). A change to the gates, their exemption tables, the
+# sandbox, or this boundary itself requires an approval from a listed
+# owner — an MR cannot self-approve its own gate edit. Pair with
+# the forge's branch protection: require CODEOWNERS approval on the
+# default branch.
+#
+# The EXEMPTIONS tables live inside the checker modules, so owning the
+# modules owns the exemption lists too. The gates moved from scripts/ into
+# the traust.cli package on 2026-08-13; the sandbox (safe_exec) lives in the
+# traust-engine repo and is owned by that repo's CODEOWNERS.
+
+# The gates
+/src/traust/cli/check_skill_alignment.py @openshift/traust-maintainers
+/src/traust/cli/check_skill_security.py @openshift/traust-maintainers
+/src/traust/cli/check_docs_consistency.py @openshift/traust-maintainers
+/src/traust/cli/check_content_licenses.py @openshift/traust-maintainers
+/src/traust/cli/check_drift.py @openshift/traust-maintainers
+
+# The sandbox policy (the sandbox itself is traust-engine/src/traust_engine/_util/safe_exec.py)
+/config/safe-exec-profiles.example.yaml @openshift/traust-maintainers
+
+# Ledger integrity / two-person rule
+/src/traust/cli/countersign.py @openshift/traust-maintainers
+
+# The boundary itself
+/.githooks/ @openshift/traust-maintainers
+/.gitlab-ci.yml @openshift/traust-maintainers
+/CODEOWNERS @openshift/traust-maintainers

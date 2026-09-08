@@ -1,0 +1,39 @@
+id: native-tls
+kind: library
+display_name: native-tls (Rust crate)
+in_plain_english: >
+  native-tls is a thin wrapper: it delegates to the platform TLS backend.
+  It has no PQC of its own — hybrid ML-KEM depends entirely on the underlying
+  platform stack (OpenSSL on Linux, SChannel on Windows, Secure Transport on macOS).
+quantum_tls:
+  by_default:
+    floors: {}
+    name: null
+  if_configured:
+    floors: {}
+    names: []
+  fips_preferred:
+    floors: {}
+    names: []
+turn_off: []
+unsupported:
+  - platform: macos
+    note: "Secure Transport has no ML-KEM / hybrid TLS."
+details:
+  depends_on: openssl
+  depends_on_note: >
+    depends_on names the Linux/other-Unix path (system OpenSSL) only; on
+    Windows native-tls uses SChannel and on macOS Secure Transport, neither
+    of which is covered by an OpenSSL floor.
+  fips_note: >
+    native-tls contributes no crypto of its own; FIPS posture is whatever the
+    platform backend provides (OpenSSL FIPS provider on Linux, the OS module
+    on Windows/macOS).
+  policy_modes: null
+  notes:
+    - "Thin platform-delegating wrapper — SChannel (Windows), Secure Transport (macOS), OpenSSL (Linux/other Unix)."
+    - "PQC/ML-KEM posture INHERITS the underlying platform stack; native-tls adds no PQC."
+    - "On Linux, hybrid ML-KEM depends on the linked system OpenSSL version (>= 3.5) — see the openssl card."
+    - "On Windows, PQC depends on the SChannel version; on macOS, Secure Transport currently offers no PQC hybrid."
+  sources:
+    - "https://docs.rs/native-tls/"

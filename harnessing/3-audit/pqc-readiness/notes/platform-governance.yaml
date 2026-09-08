@@ -1,0 +1,39 @@
+# Wording when who_sets_tls: platform.
+# The platform itself is NOT a capability note — no version floor.
+# Score what the platform *uses* (its OpenSSL, its proxy, its runtime).
+
+templates:
+  platform_missing_pq:
+    who_sets_tls: platform
+    why_not: [platform_profile_missing_pq]
+    do_next:
+      - who: platform
+        do: >
+          Enable post-quantum groups in the platform TLS configuration.
+      - who: app
+        do: >
+          Keep using the platform TLS config (watch for changes; operators
+          reload operands on change); do not hard-code curves.
+    summary: >
+      Needs work — this app follows a platform TLS policy that is not
+      quantum-ready yet.
+
+  platform_ready:
+    who_sets_tls: platform
+    why_not: []
+    do_next:
+      - who: app
+        do: >
+          Keep consuming the platform TLS config (watch for changes; operators
+          reload operands); avoid curve pins.
+    summary: >
+      Ready — platform TLS configuration offers post-quantum groups;
+      app follows it.
+
+  discovery_hints:
+    notes:
+      - "Look for TLS profile CRs, load balancer cipher policies, managed certificate configs"
+      - "Check if the app consumes TLS settings from platform config vs. hardcoding its own"
+      - "One-shot startup reads are insufficient — watch the profile; operators must reload operands on change"
+      - "App code that pins CurvePreferences / namedGroups fights the platform — remove pins"
+      - "The platform's underlying crypto stack (OpenSSL version, proxy version) determines actual PQ capability"

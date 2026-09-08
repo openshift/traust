@@ -1,0 +1,80 @@
+# Rules-of-engagement scope file for the validate-findings harness.
+#
+# This file is the AUTHORITATIVE boundary for live validation. The harness
+# refuses any action that does not match an allow rule here, and refuses
+# any action that matches an off_limits rule even if it would otherwise
+# be allowed.
+#
+# Copy to targets.yaml, fill in, and pass with:
+#   /validate-findings <product>/<repo> --targets targets.yaml
+
+engagement: ODR-validation-2026-06
+authorized_by: you@example.com
+environment: lab          # 'lab' is required for --auto to be honoured
+expires: 2026-07-01       # harness aborts if today > expires
+
+# --- Kubernetes / OpenShift ---------------------------------------------
+clusters:
+  - context: lab-hub                       # kubeconfig context name
+    api: https://api.hub.lab.example:6443  # informational only
+    namespaces:
+      - ramen-ops
+      - ramen-system
+      - openshift-dr-*                     # globs OK
+    verbs_denied: [delete]                 # even in-scope, never delete
+
+  - context: lab-spoke-1
+    namespaces: ["*"]                      # full namespace access on spoke
+
+# --- Running containers (podman/docker) ---------------------------------
+containers:
+  - runtime: podman
+    name_patterns:
+      - ramen-*
+      - odr-*
+
+# --- WASM artifacts ------------------------------------------------------
+wasm:
+  - artifact: ./artifacts/policy.wasm
+    runtime: wasmtime
+
+# --- Image allowlist (optional; restricts apply-manifest images) --------
+images:
+  - quay.io/ramendr/*
+  - registry.redhat.io/odf4/*
+
+# --- Hard denies — win over EVERYTHING, including --auto --destructive --
+off_limits:
+  - namespace: openshift-etcd
+  - namespace: openshift-kube-apiserver
+  - verb: delete
+    resource: persistentvolumeclaims
+  - verb: delete
+    resource: customresourcedefinitions
+
+# --- Credential-liveness probes (optional; EXPLICIT-ONLY) ----------------
+# Unlocks read-only liveness introspection of committed credentials found
+# by the gitleaks pre-scan (credential_liveness.py). Only the classes
+# listed here may be probed — inline flags and inferred scope can never
+# unlock these, and every probe is a single read-only introspection call
+# (GitHub /user, GitLab /api/v4/user, Slack auth.test, OpenShift users/~,
+# AWS sts get-caller-identity). Revocation is the finding owner's action,
+# never the harness's.
+credential_probes:
+  classes:
+    - github
+    - gitlab
+    - openshift
+    # - aws
+    # - slack
+
+# --- Cloud-inventory read scope (optional; EXPLICIT-ONLY) ----------------
+# Unlocks read-only enumeration for compliance snapshots
+# (harnessing/3-audit/compliance-check/scripts/collect_cloud_inventory.py). Enumerating an account or
+# cluster is an authorized-engagement action even when read-only —
+# inline flags and inferred scope can never unlock it.
+cloud_inventory:
+  aws_profiles:
+    - rh-stage
+  cluster_contexts:
+    - lab-cluster

@@ -1,0 +1,56 @@
+# python data-exposure tranche (v1.7) — mined 2026-07-29 from the
+# CWE-532/python uncovered cluster (72 TPs, 63 repos).
+#
+# LOW confidence BY DESIGN: the Go analog
+# (traust-go-data-exposure-secret-in-log) runs 0.10 campaign precision, so
+# this rule is deliberately tight — it fires only when a credential-named
+# bare identifier, an f-string interpolating one, or a %-formatted string
+# whose operand names one reaches a log call. Masking wrappers (mask(x),
+# redact(x)) and masked_*/redacted_* identifiers never match. The cluster's
+# structural remainder — whole config dicts/kwargs logged, header maps in
+# f-strings, probed file contents — is NOT mechanically expressible and
+# stays with the judge (calibration 2026-07-29: insights-engine kwargs
+# logs, bug-master-bot headers f-strings, approval-process keystore
+# probes all confirmed out of pattern reach). The judge protocol weights
+# LOW-confidence facts as inventory, not presumptive findings.
+rules:
+  - id: traust-python-data-exposure-secret-in-log
+    languages: [python]
+    severity: WARNING
+    message: >-
+      Credential-named value passed to a log call — logs flow to shared
+      aggregation where the value outlives rotation and escapes the
+      credential's access boundary. Redact or drop the value. Judge
+      whether the identifier actually holds secret material; this is a
+      LOW-confidence inventory fact. CWE-532.
+    metadata:
+      cwe: ["CWE-532"]
+      category: data-exposure
+      asvs: ["V16"]
+      confidence: LOW
+      references:
+        - "mined 2026-07-29: CWE-532/python uncovered cluster (72 TPs, 63 repos)"
+        - "tp-corpus examples (the mechanically expressible subset): netobserv/netobserv-perf-tests FIND-004 (scripts/nope.py, logging.debug(f\"TOKEN: {TOKEN}\")); openshift/assisted-test-infra FIND-001 (base_cluster.py, log.info(f\"Setting pull secret:{pull_secret}...\")); red-hat-storage/ceph-qe-scripts FIND-003 (rgw auth.py, log.info(\"... %s\" % (self.access_key, self.secret_key)))"
+        - "precision note: go analog runs 0.10 campaign precision (2026-07-29 mine) — pattern kept tight (bare credential identifiers, credential f-string interpolations, credential %-operands only) and tiered LOW; benign-metadata suffix exclusion harmonized with the go rule's 2026-07-29 extension"
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern-either:
+                  - pattern: logging.$M(..., $X, ...)
+                  - pattern: logger.$M(..., $X, ...)
+                  - pattern: log.$M(..., $X, ...)
+                  - pattern: self.logger.$M(..., $X, ...)
+                  - pattern: self.log.$M(..., $X, ...)
+              - metavariable-regex:
+                  metavariable: $M
+                  regex: ^(debug|info|warning|warn|error|exception|critical)$
+          - pattern: print(..., $X, ...)
+      # $X is (a) a bare credential-named identifier/attribute/subscript —
+      # benign metadata suffixes excluded (token_url, secret_name,
+      # token_length, expires_at, scopes, ...) and masked/redacted names
+      # excluded; (b) an f-string interpolating one; or (c) a %-formatted
+      # string whose operand names one. Masking calls (redact(x)) are not
+      # bare identifiers and never match.
+      - metavariable-regex:
+          metavariable: $X
+          regex: (?i)^(?:(?!.*(mask|redact|sanitiz|obfusc))(?![a-z0-9_.\[\]'"]*(url|uri|expiry|expires|expiresin|expireson|expiresat|expires_at|expiration|name|names|id|ids|type|path|file|len|length|count|ttl|version|kind|ref|refs|reference|namespace|ns|review|image|scope|scopes|duration|interval|timeout|err|error|errors|hash|digest|sum|status)['"\]]*$)[a-z0-9_.\[\]'"]*(password|passwd|secret|token|apikey|api_key|credential|bearer)[a-z0-9_.\[\]'"]*|(?!.*(mask|redact|sanitiz|obfusc))f['"].*\{[^}]*(password|passwd|secret|token|apikey|api_key|credential|bearer)[^}]*\}.*['"]|(?!.*(mask|redact|sanitiz|obfusc))['"].*['"]\s*%\s*.*(password|passwd|secret|token|apikey|api_key|credential|bearer)(?!_?(url|uri|name|id|path|file|len|length|count|type|scopes?|expires|expiry)).*)$

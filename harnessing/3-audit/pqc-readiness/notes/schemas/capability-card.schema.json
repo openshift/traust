@@ -1,0 +1,113 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "capability-card.schema.json",
+  "title": "PQC TLS capability card",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "kind",
+    "display_name",
+    "in_plain_english",
+    "quantum_tls",
+    "turn_off",
+    "unsupported",
+    "details"
+  ],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "kind": { "enum": ["language", "library", "os_policy"] },
+    "display_name": { "type": "string", "minLength": 1 },
+    "in_plain_english": { "type": "string", "minLength": 1, "maxLength": 300 },
+    "quantum_tls": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["by_default", "if_configured", "fips_preferred"],
+      "properties": {
+        "by_default": { "$ref": "#/definitions/tls_tier" },
+        "if_configured": { "$ref": "#/definitions/tls_tier_multi" },
+        "fips_preferred": { "$ref": "#/definitions/tls_tier_multi" }
+      }
+    },
+    "turn_off": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["value", "direct"],
+        "properties": {
+          "value": { "type": "string" },
+          "direct": { "type": "boolean" }
+        }
+      }
+    },
+    "unsupported": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          { "type": ["string", "integer"] },
+          {
+            "type": "object",
+            "required": ["platform", "note"],
+            "properties": {
+              "platform": { "type": "string" },
+              "note": { "type": "string" }
+            }
+          }
+        ]
+      }
+    },
+    "details": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["depends_on", "fips_note", "policy_modes", "sources"],
+      "properties": {
+        "depends_on": { "type": ["string", "null"] },
+        "depends_on_note": { "type": ["string", "null"] },
+        "fips_note": { "type": ["string", "null"] },
+        "policy_modes": {
+          "type": ["object", "null"],
+          "additionalProperties": true
+        },
+        "sources": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "api_only_since": { "type": ["string", "null"] },
+        "deferred": { "type": "boolean" },
+        "versioning_note": { "type": ["string", "null"] },
+        "notes": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "floors": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "tls_tier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["floors"],
+      "properties": {
+        "floors": { "$ref": "#/definitions/floors" },
+        "name": { "type": ["string", "null"] }
+      }
+    },
+    "tls_tier_multi": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["floors", "names"],
+      "properties": {
+        "floors": { "$ref": "#/definitions/floors" },
+        "names": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}

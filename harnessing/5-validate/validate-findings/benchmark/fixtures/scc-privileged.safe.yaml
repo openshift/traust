@@ -1,0 +1,16 @@
+# VB-SCC-1 safe twin: explicit restricted-v2 use only
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: vb-scc-restricted, namespace: vb-bench}
+rules:
+- apiGroups: ["security.openshift.io"]
+  resources: ["securitycontextconstraints"]
+  resourceNames: ["restricted-v2"]
+  verbs: ["use"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: vb-scc-restricted, namespace: vb-bench}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: vb-scc-restricted}
+subjects:
+- {kind: ServiceAccount, name: default, namespace: vb-bench}

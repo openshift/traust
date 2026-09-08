@@ -1,0 +1,348 @@
+{
+ "source": "NIST IR 8547 (initial public draft, Nov 2024), Tables 1-7; SP 800-131A status vocabulary",
+ "status_vocabulary": [
+  "acceptable",
+  "deprecated",
+  "disallowed",
+  "legacy_use"
+ ],
+ "clocks": {
+  "shor_112bit": {
+   "status_now": "acceptable",
+   "deprecated_after": 2030,
+   "disallowed_after": 2035
+  },
+  "shor_128bit_plus": {
+   "status_now": "acceptable",
+   "deprecated_after": null,
+   "disallowed_after": 2035
+  },
+  "symmetric_112bit": {
+   "status_now": "acceptable",
+   "deprecated_after": null,
+   "disallowed_after": 2030
+  },
+  "classically_broken": {
+   "status_now": "disallowed",
+   "deprecated_after": null,
+   "disallowed_after": null
+  },
+  "quantum_resistant": {
+   "status_now": "acceptable",
+   "deprecated_after": null,
+   "disallowed_after": null
+  },
+  "grover_margin": {
+   "status_now": "acceptable",
+   "deprecated_after": null,
+   "disallowed_after": null
+  },
+  "non_quantum_risk": {
+   "status_now": "not-quantum-relevant",
+   "deprecated_after": null,
+   "disallowed_after": null
+  }
+ },
+ "hndl_rule": "Any Shor-vulnerable KEY-ESTABLISHMENT path protecting long-lived data should migrate before the general disallowed date (IR 8547 Sec. 4.2).",
+ "replacements": {
+  "key_establishment": [
+   "ML-KEM-512 (Cat 1)",
+   "ML-KEM-768 (Cat 3)",
+   "ML-KEM-1024 (Cat 5)",
+   "hybrid X25519MLKEM768"
+  ],
+  "signatures": [
+   "ML-DSA (FIPS 204)",
+   "SLH-DSA (FIPS 205)",
+   "LMS/HSS, XMSS/XMSS-MT (SP 800-208)"
+  ]
+ },
+ "security_categories": {
+  "1": "AES-128 equivalent",
+  "3": "AES-192 equivalent",
+  "5": "AES-256 equivalent"
+ },
+ "rule_map": {
+  "_comment": "rule_id prefix (longest match wins) -> qclass + usage. qclass keys into clocks{}. usage: ke|sig|hash|sym|tls|pki|dep|adopt|infra",
+  "API_RSA": {
+   "qclass": "shor_112bit_or_higher",
+   "usage": "sig"
+  },
+  "API_CIPHER_RSA": {
+   "qclass": "shor_112bit_or_higher",
+   "usage": "ke"
+  },
+  "API_OPENSSL_RSA_NEW": {
+   "qclass": "shor_112bit_or_higher",
+   "usage": "ke"
+  },
+  "API_EVP_PKEY_RSA": {
+   "qclass": "shor_112bit_or_higher",
+   "usage": "ke"
+  },
+  "API_GO_CRYPTO_RSA": {
+   "qclass": "shor_112bit_or_higher",
+   "usage": "sig"
+  },
+  "API_NODE_CRYPTO_SIGN_RSA": {
+   "qclass": "shor_112bit_or_higher",
+   "usage": "sig"
+  },
+  "API_PY_RSA_MODULE": {
+   "qclass": "shor_112bit_or_higher",
+   "usage": "sig"
+  },
+  "API_JOSE_RSA_ALG": {
+   "qclass": "shor_112bit_or_higher",
+   "usage": "sig"
+  },
+  "API_BC_RSA_ENGINE": {
+   "qclass": "shor_112bit_or_higher",
+   "usage": "sig"
+  },
+  "TS_": {
+   "qclass": "shor_112bit_or_higher",
+   "usage": "tls"
+  },
+  "TLS_": {
+   "qclass": "shor_112bit_or_higher",
+   "usage": "tls"
+  },
+  "GO_TLS_RSA_IMPORT": {
+   "qclass": "shor_112bit_or_higher",
+   "usage": "tls"
+  },
+  "JAVA_KEYFACTORY_RSA": {
+   "qclass": "shor_112bit_or_higher",
+   "usage": "sig"
+  },
+  "NODE_TLS_MIN_VERSION": {
+   "qclass": "shor_112bit_or_higher",
+   "usage": "tls"
+  },
+  "OPENSSL_RSA_API": {
+   "qclass": "shor_112bit_or_higher",
+   "usage": "ke"
+  },
+  "CERT_RSA_1024": {
+   "qclass": "classically_broken",
+   "usage": "pki"
+  },
+  "CERT_RSA_2048": {
+   "qclass": "shor_112bit",
+   "usage": "pki"
+  },
+  "CERT_RSA_3072": {
+   "qclass": "shor_128bit_plus",
+   "usage": "pki"
+  },
+  "CERT_SHA1": {
+   "qclass": "classically_broken",
+   "usage": "pki"
+  },
+  "CERT_": {
+   "qclass": "shor_112bit_or_higher",
+   "usage": "pki"
+  },
+  "JWT_": {
+   "qclass": "shor_112bit_or_higher",
+   "usage": "sig"
+  },
+  "JWK_": {
+   "qclass": "shor_112bit_or_higher",
+   "usage": "sig"
+  },
+  "OIDC_": {
+   "qclass": "shor_112bit_or_higher",
+   "usage": "sig"
+  },
+  "SSH_DH_GROUP1": {
+   "qclass": "classically_broken",
+   "usage": "ke"
+  },
+  "SSH_DH_GROUP14_SHA1": {
+   "qclass": "shor_112bit",
+   "usage": "ke"
+  },
+  "SSH_": {
+   "qclass": "shor_112bit_or_higher",
+   "usage": "ke"
+  },
+  "PRIVATE_KEY_": {
+   "qclass": "shor_112bit_or_higher",
+   "usage": "pki"
+  },
+  "K8S_": {
+   "qclass": "shor_112bit_or_higher",
+   "usage": "tls"
+  },
+  "NGINX_": {
+   "qclass": "shor_112bit_or_higher",
+   "usage": "tls"
+  },
+  "HTTPD_": {
+   "qclass": "shor_112bit_or_higher",
+   "usage": "tls"
+  },
+  "ENVOY_": {
+   "qclass": "shor_112bit_or_higher",
+   "usage": "tls"
+  },
+  "ISTIO_": {
+   "qclass": "shor_112bit_or_higher",
+   "usage": "tls"
+  },
+  "HAPROXY_": {
+   "qclass": "shor_112bit_or_higher",
+   "usage": "tls"
+  },
+  "TRAEFIK_": {
+   "qclass": "shor_112bit_or_higher",
+   "usage": "tls"
+  },
+  "DEP_": {
+   "qclass": "shor_112bit_or_higher",
+   "usage": "dep"
+  },
+  "HP_EC_": {
+   "qclass": "shor_128bit_plus",
+   "usage": "ke"
+  },
+  "HP_EC_GO_ECDSA": {
+   "qclass": "shor_128bit_plus",
+   "usage": "sig"
+  },
+  "HP_EC_GO_ED25519_SIGN": {
+   "qclass": "shor_128bit_plus",
+   "usage": "sig"
+  },
+  "HP_C_OPENSSL_LOWLEVEL": {
+   "qclass": "shor_112bit_or_higher",
+   "usage": "ke"
+  },
+  "HP_C_OPENSSL_EVP_ASYM": {
+   "qclass": "shor_112bit_or_higher",
+   "usage": "ke"
+  },
+  "HP_GROUPS_": {
+   "qclass": "shor_128bit_plus",
+   "usage": "tls"
+  },
+  "HP_SIGN_": {
+   "qclass": "shor_128bit_plus",
+   "usage": "infra"
+  },
+  "HP_PQC_": {
+   "qclass": "quantum_resistant",
+   "usage": "adopt"
+  },
+  "HP_HASH_": {
+   "qclass": "classically_broken",
+   "usage": "hash"
+  },
+  "HP_CLI_OPENSSL": {
+   "qclass": "shor_112bit_or_higher",
+   "usage": "ke"
+  },
+  "HP_CLI_": {
+   "qclass": "shor_112bit_or_higher",
+   "usage": "infra"
+  },
+  "HP_DB_": {
+   "qclass": "shor_112bit_or_higher",
+   "usage": "tls"
+  },
+  "HP_DYN_": {
+   "qclass": "shor_112bit_or_higher",
+   "usage": "sig"
+  },
+  "HP_FW_": {
+   "qclass": "shor_112bit_or_higher",
+   "usage": "dep"
+  },
+  "HP_CHAIN_": {
+   "qclass": "grover_margin",
+   "usage": "infra"
+  },
+  "HP_ENV_": {
+   "qclass": "grover_margin",
+   "usage": "infra"
+  },
+  "HP_POLICY_": {
+   "qclass": "grover_margin",
+   "usage": "infra"
+  },
+  "HP_MAT_": {
+   "qclass": "shor_128bit_plus",
+   "usage": "pki"
+  },
+  "HP_SBOM_": {
+   "qclass": "grover_margin",
+   "usage": "infra"
+  },
+  "HP_TLS_": {
+   "qclass": "non_quantum_risk",
+   "usage": "tls"
+  },
+  "HP_SEC_": {
+   "qclass": "non_quantum_risk",
+   "usage": "infra"
+  },
+  "HP_NET_": {
+   "qclass": "non_quantum_risk",
+   "usage": "tls"
+  },
+  "HP_HASH_UNAUTH_CIPHER_MODE": {
+   "qclass": "non_quantum_risk",
+   "usage": "sym"
+  },
+  "HP_HASH_RUST_LEGACY": {
+   "qclass": "non_quantum_risk",
+   "usage": "hash"
+  },
+  "HP_DB_CEPH_MSGR2_CRC": {
+   "qclass": "non_quantum_risk",
+   "usage": "tls"
+  },
+  "HP_DYN_JWT_HS_SHORT_SECRET": {
+   "qclass": "non_quantum_risk",
+   "usage": "sig"
+  },
+  "HP_CLI_OPENSSL_ENC_STATIC_KEY": {
+   "qclass": "grover_margin",
+   "usage": "sym"
+  },
+  "HP_GOV_PLATFORM_": {
+   "qclass": "quantum_resistant",
+   "usage": "platform-delegation"
+  },
+  "HP_GOV_": {
+   "qclass": "quantum_resistant",
+   "usage": "platform-delegation"
+  }
+ },
+ "qclass_resolution_note": "shor_112bit_or_higher resolves to shor_112bit when a 112-bit parameter (RSA-2048/P-224/DH-2048) is evidenced at the site, else shor_128bit_plus; either way disallowed_after=2035.",
+ "provider_capability": {
+  "openssl": {
+   "pqc_min": "3.5",
+   "note": "ML-KEM in OpenSSL >= 3.5; verify exact NEVRA (RHEL minors rebase — el9_8 ships 3.5.x)"
+  },
+  "go": {
+   "pqc_min": "1.24",
+   "note": "X25519MLKEM768 default in crypto/tls; GODEBUG=tlsmlkem=0 disables"
+  },
+  "jdk": {
+   "pqc_min": "24",
+   "note": "ML-KEM (JEP 496) / ML-DSA (JEP 497)"
+  },
+  "node": {
+   "pqc_min": "24",
+   "note": "follows bundled OpenSSL >= 3.5"
+  },
+  "base_image_hint": {
+   "ubi8": "openssl 1.1.1 (no PQC)",
+   "ubi9": "openssl 3.0-3.2 (no PQC) unless minor rebased — check NEVRA",
+   "ubi10": "openssl 3.5+ (ML-KEM)"
+  }
+ }
+}

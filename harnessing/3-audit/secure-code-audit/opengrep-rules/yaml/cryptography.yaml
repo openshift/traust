@@ -1,0 +1,85 @@
+# yaml config-defaults tranche (v1.5) — shipped deployment defaults in
+# helm values / docker-compose / operator CR samples. Motivated by the
+# measured ~75% FN rate on the config/DSN class
+# (progress-tracker/metrics/error-analysis/fn-analysis.md §4: 9-10 of 12
+# PQC-cross-checked repos' plaintext-DSN defaults missed by the audits).
+rules:
+  # Derived from: fn-analysis.md §4 — helm default sslmode=disable /
+  # sslMode: disable missed on trustee (key escrow), maestro
+  # (database.sslMode), saas-templates (9 of 11 DB legs), syndesis,
+  # trustification; b-lite delta trustify-helm-charts (sslMode=allow).
+  - id: traust-yaml-cryptography-dsn-sslmode-disabled
+    languages: [yaml]
+    severity: ERROR
+    message: >-
+      Shipped configuration defaults the database connection to a
+      non-verifying TLS mode (sslmode disable/allow/prefer) — traffic and
+      credentials cross the network in plaintext or without server
+      authentication wherever the default is not overridden. Default to
+      verify-full (or require at minimum) and make the insecure mode an
+      explicit opt-out. CWE-319.
+    metadata:
+      cwe: ["CWE-319"]
+      category: cryptography
+      asvs: ["V12"]
+      confidence: HIGH
+      references:
+        - "measured miss: fn-analysis §4 PQC cross-check — 9/12 audited repos' sslmode=disable deployment defaults undetected (trustee, syndesis, saas-templates, maestro shape)"
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern: |
+                  $KEY: $VAL
+              - metavariable-regex:
+                  metavariable: $KEY
+                  regex: (?i)^['"]?(ssl[_-]?mode)['"]?$
+              - metavariable-regex:
+                  metavariable: $VAL
+                  regex: (?i)^['"]?(disable|allow|prefer)['"]?$
+          # DSN strings embedded in values/env entries, incl. compose
+          # `- KEY=value` list form.
+          - pattern-regex: (?i)sslmode=(disable|allow|prefer)
+
+  # Derived from: b-lite delta 3scale-amp-openshift-templates — "Standalone
+  # APIcast gateway defaults to disabled TLS certificate verification
+  # (OPENSSL_VERIFY=false)" (arm-B high, absent from the audit report).
+  # Complements the code-level rules (traust-go-cryptography-tls-skip-verify,
+  # traust-python-cryptography-requests-verify-false): this is the same class
+  # shipped as a configuration default.
+  - id: traust-yaml-cryptography-tls-verify-disabled
+    languages: [yaml]
+    severity: ERROR
+    message: >-
+      Shipped configuration disables TLS certificate verification by
+      default — every deployment that keeps the default accepts an
+      on-path attacker's certificate. Default to verification on; make
+      any insecure toggle explicit and documented. CWE-295.
+    metadata:
+      cwe: ["CWE-295"]
+      category: cryptography
+      asvs: ["V12"]
+      confidence: MEDIUM
+      references:
+        - "measured miss: b-lite sxs-2026-07 3scale-amp-openshift-templates-delta (OPENSSL_VERIFY=false default, arm-B high)"
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern: |
+                  $KEY: $VAL
+              - metavariable-regex:
+                  metavariable: $KEY
+                  regex: (?i)^['"]?(openssl[_-]?verify|(ssl|tls)[_-]?(verify|verification)|verify[_-]?(ssl|tls|certs?|peer))['"]?$
+              - metavariable-regex:
+                  metavariable: $VAL
+                  regex: (?i)^['"]?(false|no|off|0|disabled?|none)['"]?$
+          - patterns:
+              - pattern: |
+                  $KEY: $VAL
+              - metavariable-regex:
+                  metavariable: $KEY
+                  regex: (?i)^['"]?(insecure|(insecure[_-]?)?skip[_-]?(tls[_-]?)?verify|(ssl|tls)[_-]?insecure([_-]?skip[_-]?verify)?)['"]?$
+              - metavariable-regex:
+                  metavariable: $VAL
+                  regex: (?i)^['"]?(true|yes|on|1)['"]?$
+          # compose/env `- KEY=value` list form
+          - pattern-regex: (?i)^\s*-?\s*['"]?(OPENSSL_VERIFY|(SSL|TLS)_VERIFY|VERIFY_(SSL|TLS))['"]?\s*=\s*['"]?(false|no|off|0)['"]?\s*$

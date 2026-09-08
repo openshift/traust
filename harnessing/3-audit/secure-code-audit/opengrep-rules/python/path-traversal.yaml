@@ -1,0 +1,59 @@
+rules:
+  - id: traust-python-path-traversal-tar-extractall-nofilter
+    languages: [python]
+    severity: ERROR
+    message: >-
+      tarfile extractall/extract without a member filter — archive members
+      named '../x' or '/abs/path' escape the destination directory
+      (tar-slip). Pass filter='data' (Python 3.12+) or containment-check
+      each member with realpath+commonpath before writing. Manual member
+      loops that os.path.join() member names have the same flaw. This is a
+      tarfile-only bug: zipfile sanitizes member paths on extract, so
+      ZipFile receivers are excluded (do not re-file zip-slip on zipfile
+      sites). CWE-22.
+    metadata:
+      cwe: ["CWE-22"]
+      category: path-traversal
+      asvs: ["V12"]
+      confidence: HIGH
+      references:
+        - "seeded: AWX FN-probe 2026-07-21 (project_archive.py manual extract; archive project updates run unsandboxed)"
+        - "calibrated: FP-persistence analysis 2026-07-27 (untyped $T matched zipfile receivers, re-seeding the refuted zip-slip-on-zipfile class — Precision Gate mechanism-verification, ref71)"
+    patterns:
+      - pattern-either:
+          - pattern: $T.extractall(...)
+          - pattern: $T.extract(...)
+      - pattern-not: $T.extractall(..., filter=..., ...)
+      - pattern-not: $T.extract(..., filter=..., ...)
+      - pattern-not-inside: |
+          $T = zipfile.ZipFile(...)
+          ...
+      - pattern-not-inside: |
+          with zipfile.ZipFile(...) as $T:
+              ...
+
+  - id: traust-python-path-traversal-containment-startswith
+    languages: [python]
+    severity: WARNING
+    message: >-
+      Path containment via startswith() on a base path without a trailing
+      separator — '/base-evil' passes a '/base' prefix check, and
+      user-controlled names like '../base-x/y' can resolve to passing
+      siblings. Compare with os.path.commonpath([base, path]) == base, or
+      startswith(base + os.sep). CWE-22 / CWE-706.
+    metadata:
+      cwe: ["CWE-22", "CWE-706"]
+      category: path-traversal
+      asvs: ["V12"]
+      confidence: MEDIUM
+      references:
+        - "seeded: AWX FN-probe 2026-07-21 (tasks/facts.py fact-cache containment)"
+    patterns:
+      - pattern-either:
+          - pattern: os.path.realpath($P).startswith($BASE)
+          - pattern: os.path.abspath($P).startswith($BASE)
+      - metavariable-pattern:
+          metavariable: $BASE
+          patterns:
+            - pattern-not: $B + os.sep
+            - pattern-not: os.path.join($B, "")

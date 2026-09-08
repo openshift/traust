@@ -1,0 +1,73 @@
+rules:
+  - id: traust-python-input-validation-yaml-unsafe-load
+    languages: [python]
+    severity: WARNING
+    message: >-
+      yaml.load without SafeLoader instantiates arbitrary Python objects
+      from the document — a crafted YAML payload executes code during
+      parsing. Use yaml.safe_load (or Loader=yaml.SafeLoader). Judge the
+      input's trust boundary: repo-local/operator-owned config files were
+      the campaign's dismissal mass, attacker-reachable documents are the
+      finding. CWE-502.
+    metadata:
+      cwe: ["CWE-502"]
+      category: input-validation
+      asvs: ["V15"]
+      confidence: LOW
+      references:
+        - "campaign deserialization clusters (unsafe YAML load in config ingestion)"
+        - "recalibrated 2026-07-29: 0.00 campaign precision over 31 judged decisions — dismissal mass was (a) ruamel.yaml YAML() round-trip instances named `yaml` (not PyYAML; now excluded) and (b) trusted repo-local/config inputs (literal-path open() now excluded; residual trust judgment demoted to LOW-confidence inventory). Known ledger TP: insights-rules/insights-playbooks validate.py:13 (variable-path load, still fires)"
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern: yaml.load($X)
+          - patterns:
+              - pattern: yaml.load($X, Loader=$L)
+              - metavariable-regex:
+                  metavariable: $L
+                  regex: ^yaml\.(Loader|UnsafeLoader|FullLoader)$
+          - pattern: yaml.unsafe_load($X)
+      # trusted-input demotion: a literal path is an operator-owned file,
+      # not attacker-reachable input (the 0.00-precision dismissal mass)
+      - pattern-not: yaml.load(open("...", ...), ...)
+      - pattern-not: yaml.unsafe_load(open("...", ...), ...)
+      # ruamel.yaml collision: a YAML() round-trip instance bound to the
+      # name `yaml` is not the PyYAML module and does not construct
+      # arbitrary Python objects
+      - pattern-not-inside: |
+          yaml = YAML(...)
+          ...
+      - pattern-not-inside: |
+          yaml = ruamel.yaml.YAML(...)
+          ...
+
+  - id: traust-python-input-validation-pickle-loads-taint
+    languages: [python]
+    severity: ERROR
+    message: >-
+      Request-derived bytes reach pickle/marshal deserialization —
+      untrusted pickle data is arbitrary code execution by
+      construction (__reduce__ gadgets). Use JSON or another
+      data-only format for anything a client can send. CWE-502.
+    metadata:
+      cwe: ["CWE-502"]
+      category: input-validation
+      asvs: ["V5"]
+      confidence: HIGH
+      references:
+        - "seeded: language-coverage plan W1a; deserialization-of-request shape"
+    mode: taint
+    pattern-sources:
+      - pattern-either:
+          - pattern: request.body
+          - pattern: request.data[...]
+          - pattern: request.data
+          - pattern: request.files[...]
+          - pattern: request.get_data(...)
+          - pattern: request.form.get(...)
+    pattern-sinks:
+      - pattern-either:
+          - pattern: pickle.loads(...)
+          - pattern: pickle.load(...)
+          - pattern: marshal.loads(...)
+          - pattern: cPickle.loads(...)

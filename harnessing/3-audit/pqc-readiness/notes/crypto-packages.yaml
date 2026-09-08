@@ -1,0 +1,273 @@
+# crypto-packages.yaml — CURATED STARTER seed list of crypto-relevant
+# third-party packages, keyed by ecosystem, for the graph-backed
+# crypto-dependency discovery step (`scan_crypto_deps_graph.py`).
+#
+# WHY THIS EXISTS
+# ---------------
+# The portfolio graph (analysis-results/graph/portfolio-graph.db) now carries
+# multi-ecosystem dependency edges built by python3 -m traust.cli portfolio:
+#
+#     repo:<host>/<org>/<name>  -[depends_on {version, ecosystem, manifest}]->  pkg:<eco>/<name>
+#
+# This file names the packages that are *crypto-relevant* so the PQC lane can
+# discover crypto dependencies ACROSS LANGUAGES (npm/pypi/maven/cargo/ruby/
+# nuget) — not just the Go/TLS surface pqc_facts.py already covers. The scan
+# is a pure graph lookup: repos with a `depends_on` edge to one of these
+# packages, with the version + manifest provenance carried on the edge.
+#
+# THIS IS A CURATED STARTER SET — DELIBERATELY NOT EXHAUSTIVE.
+# Extend it freely; the scan re-reads it every run. To add a package:
+#   1. Pick the ecosystem key. It MUST be one of the graph's language-gated
+#      ecosystems: npm, pypi, maven, cargo, ruby, nuget (see
+#      LANGUAGE_GATED_ECOSYSTEMS in traust_engine.portfolio.graph).
+#   2. Add the package name EXACTLY as it appears in the graph node id, i.e.
+#      the `<name>` in `pkg:<eco>/<name>` as emitted by the graph builder:
+#        * npm scoped packages keep the `@scope/name` form
+#          (e.g. "@peculiar/webcrypto").
+#        * maven uses `group:artifact` (e.g. org.bouncycastle:bcprov-jdk18on).
+#        * everyone else is the plain package name.
+#   3. Give it a `posture` and a one-line `note`; add `capability_card` when
+#      a notes/capabilities/<id>.yaml card governs the real crypto backend.
+#
+# posture — controlled vocabulary (does the library do ML-KEM / hybrid PQC?):
+#   classical-only : provides only classical (RSA / ECC / AES / hashes)
+#                    primitives; NO ML-KEM / hybrid key establishment. These
+#                    are the migration-relevant dependencies.
+#   pqc-capable    : can provide ML-KEM / hybrid PQC — usually version-gated;
+#                    the pinned version still has to be new enough (see note).
+#   inherits       : PQC posture is inherited from an underlying stack; the
+#                    package is a thin wrapper. Set `capability_card` to the
+#                    governing notes/capabilities/<id>.yaml card.
+#   unknown        : posture not yet determined — NEEDS A CAPABILITY CARD.
+#                    Prefer this over overclaiming when in doubt.
+#
+# capability_card — OPTIONAL id of a notes/capabilities/<id>.yaml card that
+#   governs this package's real crypto backend. Required for `inherits`;
+#   a useful cross-reference otherwise. Available cards: aws-lc, boringssl,
+#   dotnet, gnutls, go, jdk, native-tls, node, nss, openssl, python, rhel,
+#   ruby, rustls.
+# note — one-line, factual, conservative human explanation. Version claims
+#   carry a "verify the pinned version" caveat because the graph edge records
+#   the version but this file does not encode per-version floors.
+#
+# The postures below are public, well-known facts about these libraries as of
+# the 2026-08 curation date; they are NOT product/deployment claims. Re-review
+# when a library ships PQC support (flip classical-only -> pqc-capable + note).
+
+curated_as_of: "2026-08"
+
+ecosystems:
+
+  npm:
+    "node-forge":
+      posture: classical-only
+      note: "Pure-JS classical crypto (RSA / AES / X.509 / TLS); no ML-KEM or hybrid KE."
+    "tweetnacl":
+      posture: classical-only
+      note: "Curve25519 / Ed25519 / XSalsa20 port of NaCl; classical only."
+    "crypto-js":
+      posture: classical-only
+      note: "Classical symmetric ciphers and hashes; no public-key PQC."
+    "sjcl":
+      posture: classical-only
+      note: "Stanford JS Crypto Library — classical AES / ECC only."
+    "elliptic":
+      posture: classical-only
+      note: "Classical ECC (secp256k1 / p-256 / ed25519); no ML-KEM."
+    "jsrsasign":
+      posture: classical-only
+      note: "Classical RSA / ECDSA / JWS / X.509; no PQC."
+    "node-jose":
+      posture: classical-only
+      note: "JOSE (JWE / JWS) over classical algorithms only."
+    "jose":
+      posture: classical-only
+      note: "JOSE (JWE / JWS / JWT) — classical algorithm suites only."
+    "@peculiar/webcrypto":
+      posture: classical-only
+      note: "WebCrypto API polyfill implementing the classical WebCrypto algorithms; no ML-KEM."
+    "libsodium-wrappers":
+      posture: classical-only
+      note: "libsodium (Curve25519 / Ed25519 / XChaCha20); classical only."
+    "bcrypt":
+      posture: classical-only
+      note: "bcrypt password hashing; classical KDF, no public-key or PQC."
+    "argon2":
+      posture: classical-only
+      note: "Argon2 password hashing / KDF; classical, no PQC."
+    "jsonwebtoken":
+      posture: classical-only
+      note: "JWT signing/verification over classical algorithms (HS/RS/ES); no PQC."
+    "jws":
+      posture: classical-only
+      note: "JSON Web Signature — classical signature algorithms only."
+    "jwa":
+      posture: classical-only
+      note: "JSON Web Algorithms implementation for JWS/JWE; classical only."
+    "secp256k1":
+      posture: classical-only
+      note: "Node binding to libsecp256k1 (classical ECDSA/ECDH on secp256k1); no PQC."
+    "hash.js":
+      posture: classical-only
+      note: "Pure-JS classical hash functions (SHA-2 / SHA-3 / RIPEMD); no PQC."
+    "aes-js":
+      posture: classical-only
+      note: "Pure-JS AES; classical symmetric cipher, no public-key PQC."
+    "scrypt-js":
+      posture: classical-only
+      note: "scrypt KDF in JS; classical, no PQC."
+
+  pypi:
+    "cryptography":
+      posture: inherits
+      capability_card: openssl
+      note: "pyca/cryptography binds to OpenSSL; ML-KEM/hybrid TLS follows the linked OpenSSL (>= 3.5). Its own recipes are classical."
+    "pyOpenSSL":
+      posture: inherits
+      capability_card: openssl
+      note: "Thin OpenSSL binding on top of pyca/cryptography; posture follows the linked OpenSSL."
+    "pycryptodome":
+      posture: classical-only
+      note: "Self-contained classical primitives (RSA / ECC / AES); no ML-KEM."
+    "pycryptodomex":
+      posture: classical-only
+      note: "Independent-namespace build of pycryptodome; classical only."
+    "pynacl":
+      posture: classical-only
+      note: "libsodium binding (Curve25519 / Ed25519); classical only."
+    "m2crypto":
+      posture: inherits
+      capability_card: openssl
+      note: "OpenSSL wrapper (SWIG); posture follows the linked OpenSSL."
+    "ecdsa":
+      posture: classical-only
+      note: "Pure-Python ECDSA / EdDSA; classical only."
+    "oscrypto":
+      posture: inherits
+      capability_card: openssl
+      note: "Thin bindings to the OS crypto library (OpenSSL / SecureTransport / CNG); posture follows the OS stack — OpenSSL card covers the *nix path only."
+    "paramiko":
+      posture: classical-only
+      note: "Pure-Python SSHv2; classical key exchange / host keys, no ML-KEM. (Uses pyca/cryptography for primitives.)"
+    "bcrypt":
+      posture: classical-only
+      note: "bcrypt password hashing; classical KDF, no PQC."
+    "argon2-cffi":
+      posture: classical-only
+      note: "Argon2 password hashing bindings; classical KDF, no PQC."
+    "jwcrypto":
+      posture: classical-only
+      note: "JOSE (JWK / JWS / JWE / JWT) over classical algorithms; no PQC."
+    "authlib":
+      posture: classical-only
+      note: "OAuth / OIDC / JOSE toolkit using classical signature and encryption suites; no PQC."
+    "rsa":
+      posture: classical-only
+      note: "Pure-Python RSA; classical public-key, no PQC."
+    "python-jose":
+      posture: classical-only
+      note: "JOSE implementation (JWS / JWE / JWT) over classical algorithms; no PQC."
+    "itsdangerous":
+      posture: classical-only
+      note: "HMAC-signed token serialization; classical symmetric signing, no PQC."
+
+  ruby:
+    "openssl":
+      posture: inherits
+      capability_card: openssl
+      note: "Ruby stdlib OpenSSL gem; posture follows the linked OpenSSL (see ruby + openssl cards)."
+    "rbnacl":
+      posture: classical-only
+      note: "libsodium binding; classical (Curve25519 / Ed25519)."
+    "ed25519":
+      posture: classical-only
+      note: "Ed25519 signatures; classical only."
+    "jwt":
+      posture: classical-only
+      note: "Ruby JWT gem; classical signature algorithms (HS/RS/ES), no PQC."
+    "bcrypt":
+      posture: classical-only
+      note: "bcrypt password hashing gem; classical KDF, no PQC."
+
+  maven:
+    "org.bouncycastle:bcprov-jdk18on":
+      posture: pqc-capable
+      note: "BouncyCastle JCE provider; ML-KEM / ML-DSA available in recent releases (>= 1.78) — verify the pinned version actually exposes them."
+    "org.bouncycastle:bctls-jdk18on":
+      posture: pqc-capable
+      note: "BouncyCastle (D)TLS; supports hybrid / PQC groups in recent releases — requires an explicit config and a new-enough pinned version."
+    "org.conscrypt:conscrypt-openjdk":
+      posture: inherits
+      capability_card: boringssl
+      note: "Conscrypt is a JSSE provider over BoringSSL; PQC posture follows the bundled BoringSSL."
+    "com.nimbusds:nimbus-jose-jwt":
+      posture: classical-only
+      note: "Nimbus JOSE + JWT; classical signature/encryption suites, no ML-KEM."
+    "io.jsonwebtoken:jjwt":
+      posture: classical-only
+      note: "JJWT (Java JWT); classical signature algorithms only, no PQC."
+    "com.google.crypto.tink:tink":
+      posture: classical-only
+      note: "Google Tink; classical AEAD / signatures / hybrid ECIES — no ML-KEM in stable releases. Verify the pinned version if PQC is claimed."
+
+  cargo:
+    "ring":
+      posture: classical-only
+      note: "Classical primitives (Curve25519 / P-256 / RSA / AES); no ML-KEM."
+    "rustls":
+      posture: inherits
+      capability_card: rustls
+      note: "rustls negotiates X25519MLKEM768 hybrid from 0.23.27 by default — the rustls card holds the version floor."
+    "openssl":
+      posture: inherits
+      capability_card: openssl
+      note: "The Rust openssl crate is FFI to the system OpenSSL; posture follows the system OpenSSL, not the crate version."
+    "native-tls":
+      posture: inherits
+      capability_card: native-tls
+      note: "Thin wrapper over the platform TLS stack (SChannel / Secure Transport / OpenSSL); posture is platform-dependent and inherits the underlying stack (see native-tls card)."
+    "sodiumoxide":
+      posture: classical-only
+      note: "libsodium binding; classical only."
+    "ed25519-dalek":
+      posture: classical-only
+      note: "Ed25519 signatures in pure Rust; classical only."
+    "rsa":
+      posture: classical-only
+      note: "Pure-Rust RSA; classical public-key, no PQC."
+    "p256":
+      posture: classical-only
+      note: "NIST P-256 ECDSA / ECDH (RustCrypto); classical only."
+    "p384":
+      posture: classical-only
+      note: "NIST P-384 ECDSA / ECDH (RustCrypto); classical only."
+    "aes-gcm":
+      posture: classical-only
+      note: "AES-GCM AEAD (RustCrypto); classical symmetric, no public-key PQC."
+    "chacha20poly1305":
+      posture: classical-only
+      note: "ChaCha20-Poly1305 AEAD (RustCrypto); classical symmetric, no PQC."
+    "jsonwebtoken":
+      posture: classical-only
+      note: "Rust JWT crate; classical signature algorithms (HS/RS/ES), no PQC."
+
+  nuget:
+    "BouncyCastle.Cryptography":
+      posture: pqc-capable
+      note: "BouncyCastle for .NET (bc-csharp); ML-KEM / ML-DSA in recent releases — verify the pinned version."
+    "System.Security.Cryptography":
+      posture: inherits
+      capability_card: dotnet
+      note: "The .NET crypto surface; ML-KEM support tracks the .NET runtime (see dotnet card)."
+    "Portable.BouncyCastle":
+      posture: classical-only
+      note: "Legacy portable BouncyCastle C# build; predates the PQC algorithms — treat as classical unless migrated to BouncyCastle.Cryptography."
+    "jose-jwt":
+      posture: classical-only
+      note: "JOSE (JWS / JWE / JWT) for .NET; classical algorithm suites only, no PQC."
+    "NSec.Cryptography":
+      posture: classical-only
+      note: "libsodium binding for .NET (Curve25519 / Ed25519 / AEAD); classical only."
+    "BouncyCastle":
+      posture: classical-only
+      note: "Legacy BouncyCastle NuGet id (superseded by BouncyCastle.Cryptography); predates the PQC algorithms — treat as classical."

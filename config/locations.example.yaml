@@ -1,0 +1,16 @@
+# Runtime locations for this deployment ($TRAUST_CONFIG_HOME/locations.yaml).
+# Set only the paths you use. Unset keys are omitted; install_traust --doctor
+# lists fields still empty.
+#
+# workspace: /path/to/workspace
+# analysis_results: /path/to/analysis-results
+# progress_tracker: /path/to/progress-tracker
+# inputs: /path/to/repository-inventory   # the inventories the graphs and dashboards read (default: <workspace>/inputs)
+# feeds_cache: /path/to/feeds-cache
+# portfolio_graph: /path/to/portfolio-graph.db
+# gitleaks_config: /path/to/gitleaks.toml
+# opengrep_rules: /path/to/opengrep-rule-pack
+# product_definitions: https://your-product-registry.example/products.json
+# sarif_tool_uri: https://your-org.example/harness
+
+{}

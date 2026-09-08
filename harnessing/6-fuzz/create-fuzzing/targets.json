@@ -1,0 +1,1330 @@
+{
+  "generated": "2026-07-02",
+  "source": "analysis-results/findings/**/*security-audit.{md,json}",
+  "note": "All targets are pure-function parsers/templaters \u2014 no live cluster, cloud creds, or network needed. Product-reach = number of findings/ segment dirs shipping this repo.",
+  "targets": [
+    {
+      "id": "kube-rbac-proxy",
+      "repo": "https://github.com/openshift/kube-rbac-proxy",
+      "module": "github.com/brancz/kube-rbac-proxy",
+      "commit": "HEAD",
+      "product_reach": 167,
+      "audit_ref": "FIND-019",
+      "harnesses": [
+        {
+          "file": "kube-rbac-proxy/proxy_fuzz_test.go",
+          "dest": "pkg/proxy/proxy_fuzz_test.go",
+          "fuzz": "FuzzTemplateWithValue",
+          "pkg": "./pkg/proxy"
+        },
+        {
+          "file": "kube-rbac-proxy/path_fuzz_test.go",
+          "dest": "pkg/filters/path_fuzz_test.go",
+          "fuzz": "FuzzWithAllowPaths",
+          "pkg": "./pkg/filters"
+        },
+        {
+          "file": "kube-rbac-proxy/config_fuzz_test.go",
+          "dest": "cmd/kube-rbac-proxy/app/config_fuzz_test.go",
+          "fuzz": "FuzzParseAuthorizationConfigFile",
+          "pkg": "./cmd/kube-rbac-proxy/app"
+        }
+      ]
+    },
+    {
+      "id": "oc",
+      "repo": "https://github.com/openshift/oc",
+      "module": "github.com/openshift/oc",
+      "commit": "HEAD",
+      "product_reach": 36,
+      "audit_ref": "FIND-015",
+      "harnesses": [
+        {
+          "file": "oc/archive_fuzz_test.go",
+          "dest": "pkg/cli/image/archive/archive_fuzz_test.go",
+          "fuzz": "FuzzApplyLayer",
+          "pkg": "./pkg/cli/image/archive"
+        },
+        {
+          "file": "oc/s2i_tar_fuzz_test.go",
+          "dest": "pkg/helpers/source-to-image/tar/s2i_tar_fuzz_test.go",
+          "fuzz": "FuzzExtractTarStream",
+          "pkg": "./pkg/helpers/source-to-image/tar"
+        }
+      ]
+    },
+    {
+      "id": "cluster-logging-operator",
+      "repo": "https://github.com/openshift/cluster-logging-operator",
+      "module": "github.com/openshift/cluster-logging-operator",
+      "commit": "21d494d61f59a28a6286ce9848b0181cdcae1ab7",
+      "product_reach": 1,
+      "audit_ref": "FIND-012 (audit says harness 'would likely have surfaced FIND-001')",
+      "harnesses": [
+        {
+          "file": "cluster-logging-operator/generateconf_fuzz_test.go",
+          "dest": "internal/generator/forwarder/generateconf_fuzz_test.go",
+          "fuzz": "FuzzGenerateConf",
+          "pkg": "./internal/generator/forwarder"
+        },
+        {
+          "file": "cluster-logging-operator/helper_fuzz_test.go",
+          "dest": "internal/generator/forwarder/helper_fuzz_test.go",
+          "fuzz": "",
+          "pkg": "./internal/generator/forwarder"
+        }
+      ],
+      "corpus": [
+        "docs/reference/samples/observability.*.yaml",
+        "test/e2e/collection/apivalidations/*.yaml"
+      ]
+    },
+    {
+      "id": "submariner",
+      "repo": "https://github.com/submariner-io/submariner",
+      "module": "github.com/submariner-io/submariner",
+      "commit": "HEAD",
+      "product_reach": 4,
+      "audit_ref": "FIND-015/FIND-016",
+      "goos": "linux",
+      "note": "pkg/netlink (transitive dep) only builds on Linux \u2014 run in a container or Linux CI",
+      "harnesses": [
+        {
+          "file": "submariner/natdiscovery_fuzz_test.go",
+          "dest": "pkg/natdiscovery/natdiscovery_fuzz_test.go",
+          "fuzz": "FuzzParseAndHandleMessage",
+          "pkg": "./pkg/natdiscovery"
+        },
+        {
+          "file": "submariner/ipv6re_fuzz_test.go",
+          "dest": "pkg/endpoint/ipv6re_fuzz_test.go",
+          "fuzz": "FuzzIPv6RE",
+          "pkg": "./pkg/endpoint"
+        }
+      ]
+    },
+    {
+      "id": "external-secrets",
+      "repo": "https://github.com/external-secrets/external-secrets",
+      "module": "github.com/external-secrets/external-secrets/runtime",
+      "commit": "61a0ac4155f6a3a52ba33400b78c9609e756ecd6",
+      "product_reach": 1,
+      "audit_ref": "FIND-009",
+      "workdir": "runtime",
+      "harnesses": [
+        {
+          "file": "external-secrets/template_fuzz_test.go",
+          "dest": "runtime/template/v2/template_fuzz_test.go",
+          "fuzz": "FuzzExecute",
+          "pkg": "./template/v2"
+        }
+      ]
+    },
+    {
+      "id": "cluster-version-operator",
+      "repo": "https://github.com/openshift/cluster-version-operator",
+      "module": "github.com/openshift/cluster-version-operator",
+      "commit": "8a135541fac4c803cebc481446931c8b574c019d",
+      "product_reach": 5,
+      "audit_ref": "remediation-roadmap P3",
+      "harnesses": [
+        {
+          "file": "cluster-version-operator/cincinnati_fuzz_test.go",
+          "dest": "pkg/cincinnati/cincinnati_fuzz_test.go",
+          "fuzz": "FuzzGraphUnmarshal",
+          "pkg": "./pkg/cincinnati"
+        }
+      ]
+    },
+    {
+      "id": "ocm-sdk-go",
+      "repo": "https://github.com/openshift-online/ocm-sdk-go",
+      "module": "github.com/openshift-online/ocm-sdk-go",
+      "commit": "787223b91328f500aaf641821bd136bd4ac541fb",
+      "product_reach": 4,
+      "audit_ref": "remediation-roadmap",
+      "harnesses": [
+        {
+          "file": "ocm-sdk-go/jwks_fuzz_test.go",
+          "dest": "authentication/jwks_fuzz_test.go",
+          "fuzz": "FuzzReadKeys",
+          "pkg": "./authentication"
+        }
+      ]
+    },
+    {
+      "id": "cloud-credential-operator",
+      "repo": "https://github.com/openshift/cloud-credential-operator",
+      "module": "github.com/openshift/cloud-credential-operator",
+      "commit": "833d9a3e986b917d22e063444031b3a1bda3195f",
+      "product_reach": 1,
+      "audit_ref": "remediation-roadmap",
+      "harnesses": [
+        {
+          "file": "cloud-credential-operator/credreq_fuzz_test.go",
+          "dest": "pkg/cmd/provisioning/credreq_fuzz_test.go",
+          "fuzz": "FuzzCredentialsRequestDecode",
+          "pkg": "./pkg/cmd/provisioning"
+        }
+      ]
+    },
+    {
+      "id": "assisted-installer-agent",
+      "repo": "https://github.com/openshift/assisted-installer-agent",
+      "module": "github.com/openshift/assisted-installer-agent",
+      "commit": "b5ecd18f8be9eac3fc6052b24dce306333e6cb8a",
+      "product_reach": 1,
+      "audit_ref": "remediation-roadmap",
+      "goos": "linux",
+      "note": "src/util/network.go uses vishvananda/netlink + unix.RTPROT_RA \u2014 Linux-only transitive dep",
+      "harnesses": [
+        {
+          "file": "assisted-installer-agent/ping_fuzz_test.go",
+          "dest": "src/connectivity_check/ping_fuzz_test.go",
+          "fuzz": "FuzzParsePingCmd",
+          "pkg": "./src/connectivity_check"
+        },
+        {
+          "file": "assisted-installer-agent/ping_fuzz_test.go",
+          "dest": "src/connectivity_check/ping_fuzz_test.go",
+          "fuzz": "FuzzNmapXML",
+          "pkg": "./src/connectivity_check"
+        }
+      ]
+    },
+    {
+      "id": "go-template-utils",
+      "repo": "https://github.com/stolostron/go-template-utils",
+      "module": "github.com/stolostron/go-template-utils/v7",
+      "commit": "cab371385838d791d42740e71048d5ecf197d191",
+      "product_reach": 4,
+      "audit_ref": "ACM ConfigurationPolicy template surface",
+      "note": "harness in sub-package pkg/templates/fuzz to avoid upstream TestMain that boots envtest",
+      "harnesses": [
+        {
+          "file": "go-template-utils/resolve_fuzz_test.go",
+          "dest": "pkg/templates/fuzz/resolve_fuzz_test.go",
+          "fuzz": "FuzzResolveTemplate",
+          "pkg": "./pkg/templates/fuzz"
+        }
+      ]
+    },
+    {
+      "id": "cluster-api",
+      "batch": 2,
+      "repo": "https://github.com/openshift/cluster-api",
+      "module": "sigs.k8s.io/cluster-api",
+      "commit": "HEAD",
+      "product_reach": 9,
+      "audit_ref": "FIND-019 (ClusterClass patch templating \u2014 sprig HermeticTxtFuncMap)",
+      "harnesses": [
+        {
+          "file": "cluster-api/inline_fuzz_test.go",
+          "dest": "internal/controllers/topology/cluster/patches/inline/inline_fuzz_test.go",
+          "fuzz": "FuzzRenderValueTemplate",
+          "pkg": "./internal/controllers/topology/cluster/patches/inline"
+        }
+      ]
+    },
+    {
+      "id": "router",
+      "batch": 2,
+      "repo": "https://github.com/openshift/router",
+      "module": "github.com/openshift/router",
+      "commit": "HEAD",
+      "product_reach": 8,
+      "audit_ref": "FIND-020 (tenant Route \u2192 haproxy config-grammar)",
+      "note": "writeConfig() is disk+prometheus-bound; harness targets generateRouteRegexp/clipHAProxyTimeoutValue/parseIPList helpers instead",
+      "harnesses": [
+        {
+          "file": "router/helper_fuzz_test.go",
+          "dest": "pkg/router/template/helper_fuzz_test.go",
+          "fuzz": "FuzzGenerateRouteRegexp",
+          "pkg": "./pkg/router/template"
+        }
+      ]
+    },
+    {
+      "id": "kubernetes-autoscaler",
+      "batch": 2,
+      "repo": "https://github.com/openshift/kubernetes-autoscaler",
+      "module": "k8s.io/autoscaler/cluster-autoscaler",
+      "commit": "HEAD",
+      "product_reach": 6,
+      "audit_ref": "FIND-016/017 (annotation parsers; VPA admit nil-deref suspected \u2014 followup)",
+      "workdir": "cluster-autoscaler",
+      "harnesses": [
+        {
+          "file": "kubernetes-autoscaler/clusterapi_fuzz_test.go",
+          "dest": "cluster-autoscaler/cloudprovider/clusterapi/clusterapi_fuzz_test.go",
+          "fuzz": "FuzzParseScalingBounds",
+          "pkg": "./cloudprovider/clusterapi"
+        }
+      ]
+    },
+    {
+      "id": "cluster-machine-approver",
+      "batch": 2,
+      "repo": "https://github.com/openshift/cluster-machine-approver",
+      "module": "github.com/openshift/cluster-machine-approver",
+      "commit": "HEAD",
+      "product_reach": 4,
+      "audit_ref": "trust-gatekeeper CSR PEM/ASN.1 parse",
+      "harnesses": [
+        {
+          "file": "cluster-machine-approver/csr_fuzz_test.go",
+          "dest": "pkg/controller/csr_fuzz_test.go",
+          "fuzz": "FuzzParseCSR",
+          "pkg": "./pkg/controller"
+        }
+      ]
+    },
+    {
+      "id": "openshift-apiserver",
+      "batch": 2,
+      "repo": "https://github.com/openshift/openshift-apiserver",
+      "module": "github.com/openshift/openshift-apiserver",
+      "commit": "HEAD",
+      "product_reach": 4,
+      "audit_ref": "FIND-014 (build webhook + image importer)",
+      "harnesses": [
+        {
+          "file": "openshift-apiserver/importer_fuzz_test.go",
+          "dest": "pkg/image/apiserver/importer/importer_fuzz_test.go",
+          "fuzz": "FuzzUnmarshalDockerImage",
+          "pkg": "./pkg/image/apiserver/importer"
+        },
+        {
+          "file": "openshift-apiserver/webhook_fuzz_test.go",
+          "dest": "pkg/build/apiserver/webhook/github/webhook_fuzz_test.go",
+          "fuzz": "FuzzGitHubExtract",
+          "pkg": "./pkg/build/apiserver/webhook/github"
+        }
+      ]
+    },
+    {
+      "id": "gatekeeper",
+      "batch": 2,
+      "repo": "https://github.com/open-policy-agent/gatekeeper",
+      "module": "github.com/open-policy-agent/gatekeeper/v3",
+      "commit": "af6968457717bed427afe5814f7333c22435d5ef",
+      "product_reach": 4,
+      "audit_ref": "FIND-020 (mutation path parser \u2014 differential round-trip)",
+      "harnesses": [
+        {
+          "file": "gatekeeper/path_fuzz_test.go",
+          "dest": "pkg/mutation/path/parser/path_fuzz_test.go",
+          "fuzz": "FuzzParsePath",
+          "pkg": "./pkg/mutation/path/parser"
+        }
+      ]
+    },
+    {
+      "id": "prom-label-proxy",
+      "batch": 2,
+      "repo": "https://github.com/openshift/prom-label-proxy",
+      "module": "github.com/prometheus-community/prom-label-proxy",
+      "commit": "HEAD",
+      "product_reach": 3,
+      "audit_ref": "FIND-014 (PromQL enforcer \u2014 differential bypass check)",
+      "harnesses": [
+        {
+          "file": "prom-label-proxy/enforce_fuzz_test.go",
+          "dest": "injectproxy/enforce_fuzz_test.go",
+          "fuzz": "FuzzEnforce",
+          "pkg": "./injectproxy"
+        }
+      ]
+    },
+    {
+      "id": "sriov-network-operator",
+      "batch": 2,
+      "repo": "https://github.com/openshift/sriov-network-operator",
+      "module": "github.com/k8snetworkplumbingwg/sriov-network-operator",
+      "commit": "HEAD",
+      "product_reach": 3,
+      "audit_ref": "FIND-018 (ParseVfRange, ParseMstconfigOutput)",
+      "goos": "linux",
+      "note": "pkg/vendors/mellanox transitively pulls netlink/ethtool/govdpa \u2014 Linux-only; api/v1 alone builds on darwin but grouped here for simplicity",
+      "harnesses": [
+        {
+          "file": "sriov-network-operator/parse_fuzz_test.go",
+          "dest": "api/v1/parse_fuzz_test.go",
+          "fuzz": "FuzzParseVfRange",
+          "pkg": "./api/v1"
+        },
+        {
+          "file": "sriov-network-operator/mstconfig_fuzz_test.go",
+          "dest": "pkg/vendors/mellanox/mstconfig_fuzz_test.go",
+          "fuzz": "FuzzParseMstconfigOutput",
+          "pkg": "./pkg/vendors/mellanox"
+        }
+      ]
+    },
+    {
+      "id": "runtime-utils",
+      "batch": 2,
+      "repo": "https://github.com/openshift/runtime-utils",
+      "module": "github.com/openshift/runtime-utils",
+      "commit": "7bdb5b9c177bb6cffa97b556a0685e3db10706a6",
+      "product_reach": 3,
+      "audit_ref": "FIND-003 (registry-scope nesting \u2014 differential anti-symmetry)",
+      "harnesses": [
+        {
+          "file": "runtime-utils/scope_fuzz_test.go",
+          "dest": "pkg/registries/scope_fuzz_test.go",
+          "fuzz": "FuzzScopeIsNestedInsideScope",
+          "pkg": "./pkg/registries"
+        }
+      ]
+    },
+    {
+      "id": "source-to-image",
+      "batch": 2,
+      "repo": "https://github.com/openshift/source-to-image",
+      "module": "github.com/openshift/source-to-image",
+      "commit": "739248cef2cddb420aefc68e1d3245cb626e55af",
+      "product_reach": 3,
+      "audit_ref": "roadmap (git URL parser; pkg/tar duplicate of oc s2i \u2014 covered in batch-1)",
+      "harnesses": [
+        {
+          "file": "source-to-image/git_fuzz_test.go",
+          "dest": "pkg/scm/git/git_fuzz_test.go",
+          "fuzz": "FuzzParseGitURL",
+          "pkg": "./pkg/scm/git"
+        }
+      ]
+    },
+    {
+      "id": "dex",
+      "batch": 3,
+      "repo": "https://github.com/dexidp/dex",
+      "module": "github.com/dexidp/dex",
+      "commit": "HEAD",
+      "product_reach": 2,
+      "audit_ref": "FIND-011 (SAML HandlePOST \u2014 base64\u2192XML\u2192assertion; validator=nil skips DSig)",
+      "harnesses": [
+        {
+          "file": "dex/saml_fuzz_test.go",
+          "dest": "connector/saml/saml_fuzz_test.go",
+          "fuzz": "FuzzHandlePOST",
+          "pkg": "./connector/saml"
+        }
+      ]
+    },
+    {
+      "id": "oauth-server",
+      "batch": 3,
+      "repo": "https://github.com/openshift/oauth-server",
+      "module": "github.com/openshift/oauth-server",
+      "commit": "HEAD",
+      "product_reach": 2,
+      "audit_ref": "redirect.IsServerRelativeURL open-redirect differential; decodeJWT",
+      "harnesses": [
+        {
+          "file": "oauth-server/redirect_fuzz_test.go",
+          "dest": "pkg/server/redirect/redirect_fuzz_test.go",
+          "fuzz": "FuzzIsServerRelativeURL",
+          "pkg": "./pkg/server/redirect"
+        },
+        {
+          "file": "oauth-server/jwt_fuzz_test.go",
+          "dest": "pkg/oauth/external/openid/jwt_fuzz_test.go",
+          "fuzz": "FuzzDecodeJWT",
+          "pkg": "./pkg/oauth/external/openid"
+        }
+      ]
+    },
+    {
+      "id": "cluster-policy-controller",
+      "batch": 3,
+      "repo": "https://github.com/openshift/cluster-policy-controller",
+      "module": "github.com/openshift/cluster-policy-controller",
+      "commit": "HEAD",
+      "product_reach": 2,
+      "audit_ref": "mcs.ParseRange + uid.ParseBlock (SCC namespace-annotation parsers)",
+      "harnesses": [
+        {
+          "file": "cluster-policy-controller/mcs_fuzz_test.go",
+          "dest": "pkg/security/mcs/mcs_fuzz_test.go",
+          "fuzz": "FuzzMCSParseRange",
+          "pkg": "./pkg/security/mcs"
+        },
+        {
+          "file": "cluster-policy-controller/mcs_fuzz_test.go",
+          "dest": "pkg/security/mcs/mcs_fuzz_test.go",
+          "fuzz": "FuzzUIDParseBlock",
+          "pkg": "./pkg/security/mcs"
+        }
+      ]
+    },
+    {
+      "id": "argo-rollouts",
+      "batch": 3,
+      "repo": "https://github.com/argoproj/argo-rollouts",
+      "module": "github.com/argoproj/argo-rollouts",
+      "commit": "HEAD",
+      "product_reach": 2,
+      "audit_ref": "FIND-018 (utils/evaluate \u2014 expr-lang/expr on tenant AnalysisTemplate condition)",
+      "note": "Not sprig \u2014 uses fasttemplate + expr-lang/expr; still tenant-controlled expression eval",
+      "harnesses": [
+        {
+          "file": "argo-rollouts/evaluate_fuzz_test.go",
+          "dest": "utils/evaluate/evaluate_fuzz_test.go",
+          "fuzz": "FuzzEvalCondition",
+          "pkg": "./utils/evaluate"
+        }
+      ]
+    },
+    {
+      "id": "csi-external-snapshotter",
+      "batch": 3,
+      "repo": "https://github.com/openshift/csi-external-snapshotter",
+      "module": "github.com/kubernetes-csi/external-snapshotter/v8",
+      "commit": "HEAD",
+      "product_reach": 3,
+      "audit_ref": "makeSnapshotName \u2014 scout notes unchecked slice bound [0:snapshotNameUUIDLength]",
+      "note": "Not text/template \u2014 uses os.Expand; makeSnapshotName is the interesting bounds-check target",
+      "harnesses": [
+        {
+          "file": "csi-external-snapshotter/snapname_fuzz_test.go",
+          "dest": "pkg/sidecar-controller/snapname_fuzz_test.go",
+          "fuzz": "FuzzMakeSnapshotName",
+          "pkg": "./pkg/sidecar-controller"
+        }
+      ]
+    },
+    {
+      "id": "multus-cni",
+      "batch": 3,
+      "repo": "https://github.com/k8snetworkplumbingwg/multus-cni",
+      "module": "gopkg.in/k8snetworkplumbingwg/multus-cni.v4",
+      "commit": "HEAD",
+      "product_reach": 2,
+      "audit_ref": "pod k8s.v1.cni.cncf.io/networks annotation + NAD JSON \u2014 unprivileged tenant \u2192 node CNI",
+      "harnesses": [
+        {
+          "file": "multus-cni/conf_fuzz_test.go",
+          "dest": "pkg/k8sclient/conf_fuzz_test.go",
+          "fuzz": "FuzzParsePodNetworkAnnotation",
+          "pkg": "./pkg/k8sclient"
+        },
+        {
+          "file": "multus-cni/conf_fuzz_test.go",
+          "dest": "pkg/k8sclient/conf_fuzz_test.go",
+          "fuzz": "FuzzLoadNetConf",
+          "pkg": "./pkg/k8sclient"
+        }
+      ]
+    },
+    {
+      "id": "installer",
+      "batch": 3,
+      "repo": "https://github.com/openshift/installer",
+      "module": "github.com/openshift/installer",
+      "commit": "HEAD",
+      "product_reach": 3,
+      "audit_ref": "FIND-021 (ValidateInstallConfig \u2014 pure struct validation, no cloud clients)",
+      "harnesses": [
+        {
+          "file": "installer/installconfig_fuzz_test.go",
+          "dest": "pkg/types/validation/installconfig_fuzz_test.go",
+          "fuzz": "FuzzValidateInstallConfig",
+          "pkg": "./pkg/types/validation"
+        }
+      ]
+    },
+    {
+      "id": "service-ca-operator",
+      "batch": 3,
+      "repo": "https://github.com/openshift/service-ca-operator",
+      "module": "github.com/openshift/service-ca-operator",
+      "commit": "HEAD",
+      "product_reach": 2,
+      "audit_ref": "crypto.CertsFromPEM (vendored library-go)",
+      "note": "harness in standalone pkg/fuzz sub-package to avoid operator TestMain",
+      "harnesses": [
+        {
+          "file": "service-ca-operator/pem_fuzz_test.go",
+          "dest": "pkg/fuzz/pem_fuzz_test.go",
+          "fuzz": "FuzzCertsFromPEM",
+          "pkg": "./pkg/fuzz"
+        }
+      ]
+    },
+    {
+      "id": "addon-framework",
+      "batch": 3,
+      "repo": "https://github.com/open-cluster-management-io/addon-framework",
+      "module": "open-cluster-management.io/addon-framework",
+      "commit": "HEAD",
+      "product_reach": 2,
+      "audit_ref": "parseCSR (managed-cluster CSR PEM)",
+      "harnesses": [
+        {
+          "file": "addon-framework/csr_fuzz_test.go",
+          "dest": "pkg/utils/csr_fuzz_test.go",
+          "fuzz": "FuzzParseCSR",
+          "pkg": "./pkg/utils"
+        }
+      ]
+    },
+    {
+      "id": "assisted-image-service",
+      "batch": 3,
+      "repo": "https://github.com/openshift/assisted-image-service",
+      "module": "github.com/openshift/assisted-image-service",
+      "commit": "HEAD",
+      "product_reach": 3,
+      "audit_ref": "idFromJWT \u2014 attacker URL-path token, no sig verify; isoeditor.Extract skipped (needs real ISO)",
+      "harnesses": [
+        {
+          "file": "assisted-image-service/jwt_fuzz_test.go",
+          "dest": "internal/handlers/jwt_fuzz_test.go",
+          "fuzz": "FuzzIDFromJWT",
+          "pkg": "./internal/handlers"
+        }
+      ]
+    },
+    {
+      "id": "oauth-proxy",
+      "batch": 4,
+      "fuzztime": "15m",
+      "repo": "https://github.com/openshift/oauth-proxy",
+      "module": "github.com/openshift/oauth-proxy",
+      "commit": "HEAD",
+      "product_reach": 126,
+      "audit_ref": "Track A \u2014 /\\ open-redirect STATIC-CONFIRMED (corpus/oauth-proxy/static-001); fuzz for further bypasses",
+      "harnesses": [
+        {
+          "file": "oauth-proxy/redirect_fuzz_test.go",
+          "dest": "redirect_fuzz_test.go",
+          "fuzz": "FuzzRDRedirect",
+          "pkg": "."
+        }
+      ]
+    },
+    {
+      "id": "oauth2-proxy",
+      "batch": 4,
+      "fuzztime": "15m",
+      "repo": "https://github.com/oauth2-proxy/oauth2-proxy",
+      "module": "github.com/oauth2-proxy/oauth2-proxy/v7",
+      "commit": "HEAD",
+      "product_reach": 4,
+      "audit_ref": "Track A \u2014 verification run; invalidRedirectRegex already rejects /\\ (upstream patched)",
+      "harnesses": [
+        {
+          "file": "oauth2-proxy/redirect_fuzz_test.go",
+          "dest": "pkg/app/redirect/redirect_fuzz_test.go",
+          "fuzz": "FuzzIsValidRedirect",
+          "pkg": "./pkg/app/redirect"
+        }
+      ]
+    },
+    {
+      "id": "siteconfig",
+      "batch": 4,
+      "fuzztime": "15m",
+      "repo": "https://github.com/stolostron/siteconfig",
+      "module": "github.com/stolostron/siteconfig",
+      "commit": "HEAD",
+      "product_reach": 2,
+      "audit_ref": "Track B \u2014 ParseTemplate uses slim-sprig.TxtFuncMap()",
+      "harnesses": [
+        {
+          "file": "siteconfig/template_fuzz_test.go",
+          "dest": "internal/controller/clusterinstance/template_fuzz_test.go",
+          "fuzz": "FuzzParseTemplate",
+          "pkg": "./internal/controller/clusterinstance"
+        }
+      ]
+    },
+    {
+      "id": "tektoncd-hub",
+      "batch": 4,
+      "repo": "https://github.com/tektoncd/hub",
+      "module": "github.com/tektoncd/hub",
+      "commit": "HEAD",
+      "product_reach": 4,
+      "audit_ref": "Track A \u2014 NO validator; OAuth code exfil to attacker redirect_uri (STATIC-CONFIRMED, corpus/tektoncd-hub/static-001, CVSS ~8.1)",
+      "note": "No fuzzer \u2014 nothing to fuzz; recorded as static finding only",
+      "harnesses": []
+    },
+    {
+      "id": "egress-router-cni",
+      "batch": 4,
+      "fuzztime": "1h",
+      "repo": "https://github.com/openshift/egress-router-cni",
+      "module": "github.com/openshift/egress-router-cni",
+      "commit": "HEAD",
+      "product_reach": 2,
+      "audit_ref": "Track C \u2014 loadNetConf CNI JSON",
+      "goos": "linux",
+      "note": "vishvananda/netlink transitive \u2014 Linux-only",
+      "harnesses": [
+        {
+          "file": "egress-router-cni/netconf_fuzz_test.go",
+          "dest": "pkg/macvlan/netconf_fuzz_test.go",
+          "fuzz": "FuzzLoadNetConf",
+          "pkg": "./pkg/macvlan"
+        }
+      ]
+    },
+    {
+      "id": "governance-policy-propagator",
+      "batch": 4,
+      "repo": "https://github.com/stolostron/governance-policy-propagator",
+      "module": "open-cluster-management.io/governance-policy-propagator",
+      "commit": "HEAD",
+      "product_reach": 2,
+      "audit_ref": "Track B \u2014 delegates to go-template-utils v7 (batch-1 target); covered by go-template-utils re-seeded rerun",
+      "note": "No separate fuzzer \u2014 same ResolveTemplate as batch-1 go-template-utils; re-seeded that harness with repeat/range-int",
+      "harnesses": []
+    },
+    {
+      "id": "console",
+      "batch": 4,
+      "repo": "https://github.com/openshift/console",
+      "module": "github.com/openshift/console",
+      "commit": "HEAD",
+      "product_reach": 1,
+      "audit_ref": "Track A \u2014 DROPPED: no user-controlled redirect (fixed OIDC/config URLs only)",
+      "harnesses": []
+    },
+    {
+      "id": "loki",
+      "batch": 4,
+      "repo": "https://github.com/grafana/loki",
+      "module": "github.com/grafana/loki/v3",
+      "commit": "HEAD",
+      "product_reach": 6,
+      "audit_ref": "Track A \u2014 DROPPED: no redirect validator; LogQL parser already has upstream fuzz harness",
+      "harnesses": []
+    },
+    {
+      "id": "helm-operator-plugins",
+      "batch": 4,
+      "repo": "https://github.com/operator-framework/helm-operator-plugins",
+      "module": "github.com/operator-framework/helm-operator-plugins",
+      "commit": "HEAD",
+      "product_reach": 1,
+      "audit_ref": "Track B \u2014 DROPPED: sprig only on operator-author watches.yaml (nil data, not tenant CR)",
+      "harnesses": []
+    },
+    {
+      "id": "openshift-controller-manager",
+      "batch": 4,
+      "repo": "https://github.com/openshift/openshift-controller-manager",
+      "module": "github.com/openshift/openshift-controller-manager",
+      "commit": "HEAD",
+      "product_reach": 2,
+      "audit_ref": "Track C \u2014 DROPPED: setupBuildCAs does NOT parse PEM (audit inaccurate); JWT is go-jose (already OSS-Fuzz'd)",
+      "harnesses": []
+    },
+    {
+      "id": "loki-fmt",
+      "batch": 5,
+      "fuzztime": "15m",
+      "repo": "https://github.com/grafana/loki",
+      "module": "github.com/grafana/loki/v3",
+      "commit": "HEAD",
+      "product_reach": 6,
+      "audit_ref": "Track B-exhaust \u2014 line_format sprig repeat allowlisted (STATIC-CONFIRMED #15, CVSS 7.1)",
+      "note": "Uses existing clones/loki; re-batched from batch-4 DROP after source-grep found tenant-controlled sprig",
+      "clone_alias": "loki",
+      "harnesses": [
+        {
+          "file": "loki/fmt_fuzz_test.go",
+          "dest": "pkg/logql/log/fmt_fuzz_test.go",
+          "fuzz": "FuzzNewFormatter",
+          "pkg": "./pkg/logql/log"
+        }
+      ]
+    },
+    {
+      "id": "node-feature-discovery",
+      "batch": 5,
+      "fuzztime": "15m",
+      "repo": "https://github.com/openshift/node-feature-discovery",
+      "module": "sigs.k8s.io/node-feature-discovery",
+      "commit": "HEAD",
+      "product_reach": 1,
+      "audit_ref": "Track B-exhaust \u2014 NodeFeatureRule labelsTemplate uses full sprig.FuncMap()",
+      "harnesses": [
+        {
+          "file": "node-feature-discovery/template_fuzz_test.go",
+          "dest": "pkg/apis/nfd/template/template_fuzz_test.go",
+          "fuzz": "FuzzNewHelper",
+          "pkg": "./pkg/apis/nfd/template"
+        }
+      ]
+    },
+    {
+      "id": "router-v2",
+      "batch": 5,
+      "fuzztime": "1h",
+      "repo": "https://github.com/openshift/router",
+      "module": "github.com/openshift/router",
+      "commit": "HEAD",
+      "product_reach": 8,
+      "audit_ref": "Track C \u2014 refined: does GenerateRouteRegexp escape spec.path metacharacters?",
+      "clone_alias": "router",
+      "harnesses": [
+        {
+          "file": "router/helper_fuzz_v2_test.go",
+          "dest": "pkg/router/template/helper_fuzz_v2_test.go",
+          "fuzz": "FuzzGenerateRouteRegexpV2",
+          "pkg": "./pkg/router/template"
+        }
+      ]
+    },
+    {
+      "id": "prom-label-proxy-v2",
+      "batch": 5,
+      "fuzztime": "1h",
+      "repo": "https://github.com/openshift/prom-label-proxy",
+      "module": "github.com/prometheus-community/prom-label-proxy",
+      "commit": "HEAD",
+      "product_reach": 3,
+      "audit_ref": "Track C \u2014 refined: every VectorSelector in output has injected matcher",
+      "clone_alias": "prom-label-proxy",
+      "harnesses": [
+        {
+          "file": "prom-label-proxy/enforce_fuzz_v2_test.go",
+          "dest": "injectproxy/enforce_fuzz_v2_test.go",
+          "fuzz": "FuzzEnforceV2",
+          "pkg": "./injectproxy"
+        }
+      ]
+    },
+    {
+      "id": "gatekeeper-v2",
+      "batch": 5,
+      "fuzztime": "1h",
+      "repo": "https://github.com/open-policy-agent/gatekeeper",
+      "module": "github.com/open-policy-agent/gatekeeper/v3",
+      "commit": "af6968457717bed427afe5814f7333c22435d5ef",
+      "product_reach": 4,
+      "audit_ref": "Track C \u2014 refined: UTF-8-constrained round-trip",
+      "clone_alias": "gatekeeper",
+      "harnesses": [
+        {
+          "file": "gatekeeper/path_fuzz_v2_test.go",
+          "dest": "pkg/mutation/path/parser/path_fuzz_v2_test.go",
+          "fuzz": "FuzzParsePathV2",
+          "pkg": "./pkg/mutation/path/parser"
+        }
+      ]
+    },
+    {
+      "id": "ptp-operator",
+      "batch": 5,
+      "repo": "https://github.com/openshift/ptp-operator",
+      "module": "github.com/openshift/ptp-operator",
+      "commit": "HEAD",
+      "product_reach": 1,
+      "audit_ref": "Track B-exhaust \u2014 sprig.TxtFuncMap() render.go:71; template=bindata (trusted) \u2014 NOT the DoS pattern",
+      "harnesses": []
+    },
+    {
+      "id": "cluster-network-operator",
+      "batch": 5,
+      "repo": "https://github.com/openshift/cluster-network-operator",
+      "module": "github.com/openshift/cluster-network-operator",
+      "commit": "HEAD",
+      "product_reach": 1,
+      "audit_ref": "Track B-exhaust \u2014 sprig render.go:107; bindata (trusted) \u2014 NOT the DoS pattern",
+      "harnesses": []
+    },
+    {
+      "id": "kubernetes-nmstate",
+      "batch": 5,
+      "repo": "https://github.com/nmstate/kubernetes-nmstate",
+      "module": "github.com/nmstate/kubernetes-nmstate",
+      "commit": "HEAD",
+      "product_reach": 1,
+      "audit_ref": "Track B-exhaust \u2014 sprig render.go:124; bindata (trusted) \u2014 NOT the DoS pattern",
+      "harnesses": []
+    },
+    {
+      "id": "azure-workload-identity",
+      "batch": 6,
+      "fuzztime": "15m",
+      "repo": "https://github.com/Azure/azure-workload-identity",
+      "module": "github.com/Azure/azure-workload-identity",
+      "commit": "HEAD",
+      "product_reach": 1,
+      "audit_ref": "FIND-018 webhook Handle() AdmissionReview",
+      "harnesses": [
+        {
+          "file": "azure-workload-identity/webhook_fuzz_test.go",
+          "dest": "pkg/webhook/webhook_fuzz_test.go",
+          "fuzz": "FuzzPodMutatorHandle",
+          "pkg": "./pkg/webhook"
+        }
+      ]
+    },
+    {
+      "id": "csi-driver-nfs",
+      "batch": 6,
+      "fuzztime": "15m",
+      "repo": "https://github.com/openshift/csi-driver-nfs",
+      "module": "github.com/kubernetes-csi/csi-driver-nfs",
+      "commit": "HEAD",
+      "product_reach": 1,
+      "audit_ref": "FIND-019 getNfsVolFromID (split-index + traversal differential)",
+      "harnesses": [
+        {
+          "file": "csi-driver-nfs/nfsvol_fuzz_test.go",
+          "dest": "pkg/nfs/nfsvol_fuzz_test.go",
+          "fuzz": "FuzzGetNfsVolFromID",
+          "pkg": "./pkg/nfs"
+        }
+      ]
+    },
+    {
+      "id": "baremetal-runtimecfg",
+      "batch": 6,
+      "fuzztime": "15m",
+      "repo": "https://github.com/openshift/baremetal-runtimecfg",
+      "module": "github.com/openshift/baremetal-runtimecfg",
+      "commit": "HEAD",
+      "product_reach": 1,
+      "audit_ref": "FIND-019 RenderFile text/template",
+      "harnesses": [
+        {
+          "file": "baremetal-runtimecfg/render_fuzz_test.go",
+          "dest": "pkg/render/render_fuzz_test.go",
+          "fuzz": "FuzzRenderFile",
+          "pkg": "./pkg/render"
+        }
+      ]
+    },
+    {
+      "id": "machine-api-provider-powervs",
+      "batch": 6,
+      "fuzztime": "15m",
+      "repo": "https://github.com/openshift/machine-api-provider-powervs",
+      "module": "github.com/openshift/machine-api-provider-powervs",
+      "commit": "HEAD",
+      "product_reach": 1,
+      "audit_ref": "FIND-016 ProviderSpecFromRawExtension",
+      "note": "TestMain envtest \u2014 expect runtime skip if KUBEBUILDER_ASSETS unset",
+      "harnesses": [
+        {
+          "file": "machine-api-provider-powervs/providerspec_fuzz_test.go",
+          "dest": "pkg/actuators/machine/providerspec_fuzz_test.go",
+          "fuzz": "FuzzProviderSpecFromRawExtension",
+          "pkg": "./pkg/actuators/machine"
+        }
+      ]
+    },
+    {
+      "id": "cluster-etcd-operator",
+      "batch": 6,
+      "fuzztime": "15m",
+      "repo": "https://github.com/openshift/cluster-etcd-operator",
+      "module": "github.com/openshift/cluster-etcd-operator",
+      "commit": "HEAD",
+      "product_reach": 1,
+      "audit_ref": "validRelPath (zip-slip differential)",
+      "harnesses": [
+        {
+          "file": "cluster-etcd-operator/validrelpath_fuzz_test.go",
+          "dest": "pkg/cmd/backuprestore/validrelpath_fuzz_test.go",
+          "fuzz": "FuzzValidRelPath",
+          "pkg": "./pkg/cmd/backuprestore"
+        }
+      ]
+    },
+    {
+      "id": "local-storage-operator",
+      "batch": 6,
+      "fuzztime": "15m",
+      "repo": "https://github.com/openshift/local-storage-operator",
+      "module": "github.com/openshift/local-storage-operator",
+      "commit": "HEAD",
+      "product_reach": 1,
+      "audit_ref": "FIND-013 diskutil lsblk-output parser",
+      "harnesses": [
+        {
+          "file": "local-storage-operator/disktable_fuzz_test.go",
+          "dest": "pkg/diskmaker/controllers/lv/disktable_fuzz_test.go",
+          "fuzz": "FuzzDiskTableParse",
+          "pkg": "./pkg/diskmaker/controllers/lv"
+        }
+      ]
+    },
+    {
+      "id": "cluster-kube-controller-manager-operator",
+      "batch": 6,
+      "fuzztime": "15m",
+      "repo": "https://github.com/openshift/cluster-kube-controller-manager-operator",
+      "module": "github.com/openshift/cluster-kube-controller-manager-operator",
+      "commit": "HEAD",
+      "product_reach": 1,
+      "audit_ref": "discoverRestrictedCIDRs []byte",
+      "harnesses": [
+        {
+          "file": "cluster-kube-controller-manager-operator/cidrs_fuzz_test.go",
+          "dest": "pkg/cmd/render/cidrs_fuzz_test.go",
+          "fuzz": "FuzzDiscoverRestrictedCIDRs",
+          "pkg": "./pkg/cmd/render"
+        }
+      ]
+    },
+    {
+      "id": "cluster-api-provider-openstack",
+      "batch": 6,
+      "fuzztime": "15m",
+      "repo": "https://github.com/openshift/cluster-api-provider-openstack",
+      "module": "sigs.k8s.io/cluster-api-provider-openstack",
+      "commit": "HEAD",
+      "product_reach": 1,
+      "audit_ref": "clouds.yaml getCloudFromSecret",
+      "harnesses": [
+        {
+          "file": "cluster-api-provider-openstack/clouds_fuzz_test.go",
+          "dest": "pkg/scope/clouds_fuzz_test.go",
+          "fuzz": "FuzzGetCloudFromSecret",
+          "pkg": "./pkg/scope"
+        }
+      ]
+    },
+    {
+      "id": "velero",
+      "batch": 6,
+      "fuzztime": "15m",
+      "repo": "https://github.com/openshift/velero",
+      "module": "github.com/vmware-tanzu/velero",
+      "commit": "HEAD",
+      "product_reach": 2,
+      "audit_ref": "ParseOrderedResources string",
+      "harnesses": [
+        {
+          "file": "velero/orderedresources_fuzz_test.go",
+          "dest": "pkg/cmd/cli/backup/orderedresources_fuzz_test.go",
+          "fuzz": "FuzzParseOrderedResources",
+          "pkg": "./pkg/cmd/cli/backup"
+        }
+      ]
+    },
+    {
+      "id": "dpu-operator",
+      "batch": 6,
+      "repo": "https://github.com/openshift/dpu-operator",
+      "module": "github.com/openshift/dpu-operator",
+      "commit": "HEAD",
+      "product_reach": 4,
+      "audit_ref": "SKIP \u2014 CreateBridgePort pass-through to live vendor gRPC plugin",
+      "harnesses": []
+    },
+    {
+      "id": "github.com-FasterXML-woodstox",
+      "repo": "${FUZZ_MIRROR_BASE}/github.com-FasterXML-woodstox",
+      "language": "java",
+      "commit": "c3002ad82ae6231db6362c9f070beeff009bed89",
+      "product_reach": 0,
+      "audit_ref": "GITHUB_COM_FASTERXML_WOO-c3002ad-001",
+      "batch": 8,
+      "notes": "external-bu; StAX event walk, offline resolver guard",
+      "harnesses": [
+        {
+          "file": "github.com-FasterXML-woodstox/WoodstoxStreamFuzz.java",
+          "dest": "src/test/java/WoodstoxStreamFuzz.java",
+          "fuzz": "WoodstoxStreamFuzz"
+        }
+      ]
+    },
+    {
+      "id": "github.com-jhy-jsoup",
+      "repo": "${FUZZ_MIRROR_BASE}/github.com-jhy-jsoup",
+      "language": "java",
+      "commit": "ac28afe6e5bf96d39fd17c3e0a797a7585e1958c",
+      "product_reach": 0,
+      "audit_ref": "GITHUB_COM_JHY_JSOUP-ac28afe-004",
+      "batch": 8,
+      "notes": "external-bu; parse/serialize + Safelist bypass invariant",
+      "harnesses": [
+        {
+          "file": "github.com-jhy-jsoup/JsoupParseFuzz.java",
+          "dest": "src/test/java/JsoupParseFuzz.java",
+          "fuzz": "JsoupParseFuzz"
+        }
+      ]
+    },
+    {
+      "id": "github.com-FasterXML-jackson-core",
+      "repo": "${FUZZ_MIRROR_BASE}/github.com-FasterXML-jackson-core",
+      "language": "java",
+      "commit": "e45faacec08aaf508b30ae3020c81956d4b8beb9",
+      "product_reach": 0,
+      "audit_ref": "GITHUB_COM_FASTERXML_JAC-e45faac-001",
+      "batch": 8,
+      "notes": "external-bu; Jackson 3 (tools.jackson) token walk",
+      "harnesses": [
+        {
+          "file": "github.com-FasterXML-jackson-core/JsonParseFuzz.java",
+          "dest": "src/test/java/JsonParseFuzz.java",
+          "fuzz": "JsonParseFuzz"
+        }
+      ]
+    },
+    {
+      "id": "github.com-snakeyaml-snakeyaml",
+      "repo": "${FUZZ_MIRROR_BASE}/github.com-snakeyaml-snakeyaml",
+      "language": "java",
+      "commit": "e6eb1b7274ea42aceb4194b56392ab42954e1120",
+      "product_reach": 0,
+      "audit_ref": "GITHUB_COM_SNAKEYAML_SNA-e6eb1b7-001",
+      "batch": 8,
+      "notes": "external-bu; SafeConstructor loadAll, default limits",
+      "harnesses": [
+        {
+          "file": "github.com-snakeyaml-snakeyaml/SnakeyamlLoadFuzz.java",
+          "dest": "src/test/java/SnakeyamlLoadFuzz.java",
+          "fuzz": "SnakeyamlLoadFuzz"
+        }
+      ]
+    },
+    {
+      "id": "github.com-apache-commons-text",
+      "repo": "${FUZZ_MIRROR_BASE}/github.com-apache-commons-text",
+      "language": "java",
+      "commit": "5da766d4d86c48d0724928d0af4205382d446d54",
+      "product_reach": 0,
+      "audit_ref": "GITHUB_COM_APACHE_COMMON-5da766d-001",
+      "batch": 8,
+      "notes": "external-bu; cumulative-patch surfaces (interpolator, reader cap, unescaper)",
+      "harnesses": [
+        {
+          "file": "github.com-apache-commons-text/StringSubstitutorFuzz.java",
+          "dest": "src/test/java/StringSubstitutorFuzz.java",
+          "fuzz": "StringSubstitutorFuzz"
+        }
+      ]
+    },
+    {
+      "id": "github.com-yawkat-lz4-java",
+      "repo": "${FUZZ_MIRROR_BASE}/github.com-yawkat-lz4-java",
+      "language": "java",
+      "commit": "dbd86d04b8dd716e1c2bc626be54189997d910da",
+      "product_reach": 0,
+      "audit_ref": "GITHUB_COM_YAWKAT_LZ4_JA-dbd86d0-001",
+      "batch": 8,
+      "notes": "external-bu; block+frame decompressors, 1MiB output cap",
+      "harnesses": [
+        {
+          "file": "github.com-yawkat-lz4-java/Lz4DecompressFuzz.java",
+          "dest": "src/test/java/Lz4DecompressFuzz.java",
+          "fuzz": "Lz4DecompressFuzz"
+        }
+      ]
+    },
+    {
+      "id": "github.com-pallets-click",
+      "repo": "${FUZZ_MIRROR_BASE}/github.com-pallets-click",
+      "language": "python",
+      "commit": "b2e30a175449cfda909ee4fbf4a29a6a071cad53",
+      "product_reach": 0,
+      "audit_ref": "GITHUB_COM_PALLETS_CLICK-b2e30a1-001",
+      "batch": 8,
+      "notes": "external-bu; shell-completion arg splitting + wrap_text",
+      "harnesses": [
+        {
+          "file": "github.com-pallets-click/click_parse_fuzz.py",
+          "dest": "click_parse_fuzz.py",
+          "fuzz": "run_one"
+        }
+      ]
+    },
+    {
+      "id": "github.com-FasterXML-jackson-databind",
+      "repo": "${FUZZ_MIRROR_BASE}/github.com-FasterXML-jackson-databind",
+      "language": "java",
+      "commit": "b2d967b271c6431aab85af5e09a5a33c37491f2a",
+      "product_reach": 0,
+      "audit_ref": "GITHUB_COM_FASTERXML_JAC-b2d967b-001",
+      "batch": 9,
+      "notes": "external-bu; cumulative/2.13.4.2 patch line; pre-StreamReadConstraints deep-nesting class",
+      "harnesses": [
+        {
+          "file": "github.com-FasterXML-jackson-databind/JsonBindFuzz.java",
+          "dest": "src/test/java/JsonBindFuzz.java",
+          "fuzz": "JsonBindFuzz"
+        }
+      ]
+    },
+    {
+      "id": "github.com-apache-commons-compress",
+      "repo": "${FUZZ_MIRROR_BASE}/github.com-apache-commons-compress",
+      "language": "java",
+      "commit": "541853c2db1013fabe43d0dc57ba877379737691",
+      "product_reach": 0,
+      "audit_ref": "GITHUB_COM_APACHE_COMMON-541853c-003",
+      "batch": 9,
+      "notes": "external-bu; CVE-2024-25710/1.21 patch line; archive+compressor autodetect, 1MiB caps",
+      "harnesses": [
+        {
+          "file": "github.com-apache-commons-compress/CompressStreamFuzz.java",
+          "dest": "src/test/java/CompressStreamFuzz.java",
+          "fuzz": "CompressStreamFuzz"
+        }
+      ]
+    },
+    {
+      "id": "gitbox.apache.org-repos-asf-freemarker",
+      "repo": "${FUZZ_MIRROR_BASE}/gitbox.apache.org-repos-asf-freemarker",
+      "language": "java",
+      "commit": "7926e97719a91c69995e776dd1aae3d38584d8af",
+      "product_reach": 0,
+      "audit_ref": "GITBOX_APACHE_ORG_REPOS_-7926e97-002",
+      "batch": 9,
+      "notes": "external-bu; parse-only (processing is SSTI by design)",
+      "harnesses": [
+        {
+          "file": "gitbox.apache.org-repos-asf-freemarker/FreemarkerParseFuzz.java",
+          "dest": "src/test/java/FreemarkerParseFuzz.java",
+          "fuzz": "FreemarkerParseFuzz"
+        }
+      ]
+    },
+    {
+      "id": "gitbox.apache.org-repos-asf-ws-axiom",
+      "repo": "${FUZZ_MIRROR_BASE}/gitbox.apache.org-repos-asf-ws-axiom",
+      "language": "java",
+      "commit": "ea3071a81c49d769222a254b027da0e4b0c86261",
+      "product_reach": 0,
+      "audit_ref": "GITBOX_APACHE_ORG_REPOS_-ea3071a-001",
+      "batch": 9,
+      "notes": "external-bu; multi-module: mvn install -pl implementations/axiom-impl -am; OM tree build+serialize",
+      "harnesses": [
+        {
+          "file": "gitbox.apache.org-repos-asf-ws-axiom/AxiomParseFuzz.java",
+          "dest": "src/test/java/AxiomParseFuzz.java",
+          "fuzz": "AxiomParseFuzz"
+        }
+      ]
+    },
+    {
+      "id": "github.com-netplex-json-smart-v2",
+      "repo": "${FUZZ_MIRROR_BASE}/github.com-netplex-json-smart-v2",
+      "language": "java",
+      "commit": "a207d82d0e5081a74c5ef412f3c746c84904d320",
+      "product_reach": 0,
+      "audit_ref": "GITHUB_COM_NETPLEX_JSON_-a207d82-001",
+      "batch": 9,
+      "notes": "external-bu; cumulative/2.4.8 patch line; CVE-2023-1370 boundary check; module json-smart",
+      "harnesses": [
+        {
+          "file": "github.com-netplex-json-smart-v2/JsonSmartParseFuzz.java",
+          "dest": "json-smart/src/test/java/JsonSmartParseFuzz.java",
+          "fuzz": "JsonSmartParseFuzz"
+        }
+      ]
+    },
+    {
+      "id": "github.com-stleary-JSON-java",
+      "repo": "${FUZZ_MIRROR_BASE}/github.com-stleary-JSON-java",
+      "language": "java",
+      "commit": "8393d12e29c67c04797064645eee9b558043d2d4",
+      "product_reach": 0,
+      "audit_ref": "GITHUB_COM_STLEARY_JSON_-8393d12-001",
+      "batch": 10,
+      "notes": "external-bu; cumulative/20220320 line; CVE-2022-45688 XML.toJSONObject boundary",
+      "harnesses": [
+        {
+          "file": "github.com-stleary-JSON-java/JsonJavaFuzz.java",
+          "dest": "src/test/java/JsonJavaFuzz.java",
+          "fuzz": "JsonJavaFuzz"
+        }
+      ]
+    },
+    {
+      "id": "github.com-json-path-JsonPath",
+      "repo": "${FUZZ_MIRROR_BASE}/github.com-json-path-JsonPath",
+      "language": "java",
+      "commit": "272da9e622edc3f339266ceb89139dd04c3cf8a1",
+      "product_reach": 0,
+      "audit_ref": "GITHUB_COM_JSON_PATH_JSO-272da9e-001",
+      "batch": 10,
+      "notes": "external-bu; CVE-2023-51074/2.8.0 line; path compile + deep-scan read",
+      "harnesses": [
+        {
+          "file": "github.com-json-path-JsonPath/JsonPathFuzz.java",
+          "dest": "json-path/src/test/java/JsonPathFuzz.java",
+          "fuzz": "JsonPathFuzz"
+        }
+      ]
+    },
+    {
+      "id": "github.com-xmlunit-xmlunit",
+      "repo": "${FUZZ_MIRROR_BASE}/github.com-xmlunit-xmlunit",
+      "language": "java",
+      "commit": "22b071565097ec0ee07abbe6e8843f6f1ef6f446",
+      "product_reach": 0,
+      "audit_ref": "GITHUB_COM_XMLUNIT_XMLUN-22b0715-002",
+      "batch": 10,
+      "notes": "external-bu; CVE-2024-31573/2.9.1 line; parse + diff walk",
+      "harnesses": [
+        {
+          "file": "github.com-xmlunit-xmlunit/XmlUnitFuzz.java",
+          "dest": "xmlunit-core/src/test/java/XmlUnitFuzz.java",
+          "fuzz": "XmlUnitFuzz"
+        }
+      ]
+    },
+    {
+      "id": "github.com-jline-jline3",
+      "repo": "${FUZZ_MIRROR_BASE}/github.com-jline-jline3",
+      "language": "java",
+      "commit": "b1b78cf530505780cfd2044dca5125d3c7c0a45c",
+      "product_reach": 0,
+      "audit_ref": "GITHUB_COM_JLINE_JLINE3-b1b78cf-001",
+      "batch": 10,
+      "notes": "external-bu; LW-2026-000204/3.29.0 line; DefaultParser + fromAnsi; modules reader+terminal",
+      "harnesses": [
+        {
+          "file": "github.com-jline-jline3/JlineParseFuzz.java",
+          "dest": "src/test/java/JlineParseFuzz.java",
+          "fuzz": "JlineParseFuzz"
+        }
+      ]
+    },
+    {
+      "id": "github.com-h2database-h2database",
+      "repo": "${FUZZ_MIRROR_BASE}/github.com-h2database-h2database",
+      "language": "java",
+      "commit": "270a39e41ada50753e12a55e1fa740e20ff3af31",
+      "product_reach": 0,
+      "audit_ref": "GITHUB_COM_H2DATABASE_H2-270a39e-001",
+      "batch": 10,
+      "notes": "external-bu; CVE-2022-45868/2.1.214 line; prepareStatement parse-only vs jdbc:h2:mem; workdir h2/",
+      "harnesses": [
+        {
+          "file": "github.com-h2database-h2database/H2ParseFuzz.java",
+          "dest": "h2/src/test/java/H2ParseFuzz.java",
+          "fuzz": "H2ParseFuzz"
+        }
+      ]
+    },
+    {
+      "id": "github.com-apache-velocity-engine",
+      "repo": "${FUZZ_MIRROR_BASE}/github.com-apache-velocity-engine",
+      "language": "java",
+      "commit": "c541025518393bc65c394071d97bdb23f26f483b",
+      "product_reach": 0,
+      "audit_ref": "GITHUB_COM_APACHE_VELOCI-c541025-003",
+      "batch": 10,
+      "notes": "external-bu; tag 2.4.1 verbatim snapshot; parse-only (rendering is SSTI by design)",
+      "harnesses": [
+        {
+          "file": "github.com-apache-velocity-engine/VelocityParseFuzz.java",
+          "dest": "velocity-engine-core/src/test/java/VelocityParseFuzz.java",
+          "fuzz": "VelocityParseFuzz"
+        }
+      ]
+    }
+  ]
+}

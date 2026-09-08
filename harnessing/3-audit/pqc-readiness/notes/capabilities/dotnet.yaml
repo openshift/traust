@@ -1,0 +1,34 @@
+id: dotnet
+kind: language
+display_name: .NET
+in_plain_english: >
+  .NET 10 has first-class ML-KEM APIs (System.Security.Cryptography.MLKem).
+  TLS PQ support depends on the OS: OpenSSL 3.5+ on Linux, Schannel on
+  Windows 11/Server 2025 (GA July 2026, not enabled by default).
+  Not supported on macOS in .NET 10.
+quantum_tls:
+  by_default:
+    floors: {}
+    name: null
+  if_configured:
+    floors: { "linux": "10.0", "windows": "10.0" }
+    names: ["X25519MLKEM768"]
+  fips_preferred:
+    floors: {}
+    names: []
+turn_off: []
+unsupported:
+  - { platform: "macOS", note: ".NET 10 uses Apple CryptoKit which lacks PQ; tracked for .NET 11" }
+details:
+  depends_on: openssl
+  depends_on_note: >
+    On Linux, .NET uses the system OpenSSL for TLS — PQ requires OpenSSL 3.5+.
+    On Windows, .NET uses Schannel — PQ requires Windows 11 July 2026+ update
+    and admin must enable hybrid groups via PowerShell or Group Policy.
+  fips_note: >
+    FIPS posture depends on the underlying OS crypto provider.
+    Windows: SymCrypt/Schannel. Linux: OpenSSL FIPS module.
+  policy_modes: null
+  sources:
+    - "https://devblogs.microsoft.com/dotnet/post-quantum-cryptography-in-dotnet/"
+    - "https://techcommunity.microsoft.com/blog/post-quantum-crypto-tech-blog/asp-net-kestrel-and-schannel-ga-with-tls-1-3-post-quantum-cryptography/4536649"

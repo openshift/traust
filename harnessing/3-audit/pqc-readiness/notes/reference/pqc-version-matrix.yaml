@@ -1,0 +1,104 @@
+# PQC Version Matrix — Single Source of Truth
+#
+# All version thresholds for PQC capability live here.
+# Consumers: pqc_facts.py, pqc-readiness-decision-tree.json (via loader),
+#            build_pqc_rollup.py (toolchain quick-wins), remediation docs (illustrative only).
+#
+# Update ONE file when a runtime ships PQC support.
+# Format: each runtime lists the minimum version where PQC key exchange
+# is available by default (no opt-in flags needed).
+
+runtimes:
+  go:
+    pqc_kex_default:
+      version: "1.24"
+      group: "X25519MLKEM768"
+      curve_id: 4588
+    pqc_secp_hybrids:
+      version: "1.26"
+      groups: ["SecP256r1MLKEM768", "SecP384r1MLKEM1024"]
+      curve_ids: [4587, 4589]
+    pqc_signatures:
+      version: null  # not yet in stdlib
+      package: "crypto/mldsa"
+      tracking: "https://github.com/golang/go/issues/77626"
+    kill_switch:
+      flag: "tlsmlkem"
+      env: "GODEBUG"
+      disable_value: "tlsmlkem=0"
+
+  openssl:
+    pqc_kex_default:
+      version: "3.5"
+      groups: ["X25519MLKEM768", "SecP256r1MLKEM768", "SecP384r1MLKEM1024"]
+    pqc_signatures:
+      version: "3.5"
+      algorithms: ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87", "SLH-DSA-SHA2-128s"]
+
+  node:
+    pqc_kex_default:
+      version: "22.20"
+      note: "Inherits from bundled OpenSSL; per-major: 22.20+, 24.5+, 25.0+. Node 23 never got it."
+    kill_switch:
+      flag: "--tls-max-v1.2"
+      env: "NODE_OPTIONS"
+
+  jdk:
+    pqc_kex_default:
+      version: "27"
+      jep: 527
+      note: "TLS hybrid KEX default (JEP 527). JDK 24 has ML-KEM API only (JEP 496) — not TLS."
+    pqc_signatures:
+      version: "24"
+      jep: 497
+      algorithms: ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"]
+    kill_switch:
+      property: "jdk.tls.namedGroups"
+
+  rustls:
+    pqc_kex_default:
+      version: "0.23.27"
+      group: "X25519MLKEM768"
+      feature: "prefer-post-quantum"
+    note: "Default provider (aws-lc-rs) includes X25519MLKEM768 at highest priority"
+
+  gnutls:
+    pqc_kex_default:
+      version: "3.8"
+      note: "Experimental; build-flag gated"
+
+  nss:
+    pqc_kex_default:
+      version: "3.105"
+      note: "ML-KEM support"
+
+# NIST IR 8547 clocks — authoritative reference
+# Source: NIST IR 8547 (initial public draft, Nov 2024)
+# Status: IPD (not final). Update if NIST revises.
+nist_ir8547:
+  status: "ipd"
+  source: "https://csrc.nist.gov/pubs/ir/8547/ipd"
+  clocks:
+    shor_112bit:
+      deprecated_after: 2030
+      disallowed_after: 2035
+    shor_128bit_plus:
+      deprecated_after: null
+      disallowed_after: 2035
+    symmetric_112bit:
+      deprecated_after: null
+      disallowed_after: 2030
+
+# RHEL crypto-policies PQC availability
+rhel_crypto_policies:
+  pqc_opt_in:
+    version: "9.7"
+    command: "update-crypto-policies --set DEFAULT:PQ"
+  pqc_default:
+    version: "10.1"
+    note: "PQ in all predefined policies; NO-PQ to disable"
+  fips_pqc_groups:
+    - "SecP256r1MLKEM768"
+    - "SecP384r1MLKEM1024"
+  fips_excluded:
+    - "X25519MLKEM768"

@@ -1,0 +1,146 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "traust"
+# version must equal the VERSION file — check_docs_consistency.py
+# version-sync check fails the pre-push when they drift (and fails
+# closed if this field is removed)
+version = "0.347.11"
+description = "AI agent tooling for automated security audits of Red Hat Hybrid Platforms source code"
+requires-python = ">=3.11"
+dependencies = [
+    "traust-engine>=0.12.3",
+    "traust-contracts>=1.0.0,<2",
+    "jsonschema",
+    "referencing",
+    "pyyaml",
+    "playwright",
+    "pytest",
+]
+
+[project.optional-dependencies]
+graph = [
+    "tree-sitter",
+    "tree-sitter-go",
+    "tree-sitter-python",
+    "tree-sitter-typescript",
+    "tree-sitter-javascript",
+]
+signing = ["sigstore>=4.0,<5.0"]
+
+[project.scripts]
+traust = "traust.cli.__main__:main"
+
+[dependency-groups]
+dev = ["ruff>=0.6", "pytest-xdist>=3"]
+
+[tool.uv.sources]
+traust-contracts = { git = "ssh://git@gitlab.cee.redhat.com/hybrid-platforms-sec/traust-contracts.git", tag = "v1.2.0" }
+traust-engine = { git = "ssh://git@gitlab.cee.redhat.com/hybrid-platforms-sec/traust-engine.git", tag = "v0.12.3" }
+
+# Multi-skill CLIs live under src/traust/; harnessing/<skill>/ for single-skill
+# scripts. Install for deps + importable path helpers.
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["traust*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "requires_git: test creates git repos in tmp dirs (skipped when git init is blocked)",
+    "requires_ledger: test needs LAAS_TOKEN / local ledger auth configured",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = ["harnessing/fuzz-harnesses/clones"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "UP", "B", "SIM", "PTH", "RUF"]
+ignore = ["RUF001", "RUF002", "RUF003"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101", "E741", "E402", "E501", "RUF012"]
+# Dashboard/rollup builders and product-index scripts embed HTML, CSS, markdown
+# templates and data strings that are inherently wide.
+"harnessing/**/build_priv_profile.py" = ["E501"]
+"harnessing/**/build_fuzz_rollup.py" = ["E501"]
+"harnessing/**/build_loc_dashboard.py" = ["E501"]
+"harnessing/**/build_rbac_tenancy_rollup.py" = ["E501"]
+"harnessing/**/emit_product_index.py" = ["E501", "PTH123", "SIM102", "RUF012"]
+"harnessing/**/collect_harness_metrics.py" = ["E501"]
+"harnessing/**/backfill_remediations.py" = ["E501"]
+"harnessing/**/build_pqc_dashboard.py" = ["E501"]
+"harnessing/**/build_executive_summary.py" = [
+    "E501",
+    "PTH123",
+    "SIM102",
+    "PTH118",
+    "PTH119",
+    "PTH110",
+    "PTH112",
+    "PTH113",
+    "PTH114",
+    "PTH120",
+    "PTH206",
+    "PTH207",
+    "SIM115",
+    "SIM105",
+    "RUF012",
+]
+"harnessing/**/build_census.py" = [
+    "E501",
+    "PTH123",
+    "SIM102",
+    "PTH118",
+    "PTH119",
+    "PTH110",
+    "PTH112",
+    "PTH114",
+    "PTH120",
+    "PTH206",
+    "SIM115",
+    "RUF012",
+]
+"harnessing/**/build_validation_fuzz_dashboard.py" = [
+    "E501",
+    "PTH123",
+    "SIM102",
+    "SIM115",
+    "RUF012",
+]
+"harnessing/**/build_insecure_patterns.py" = [
+    "E501",
+    "PTH123",
+    "SIM115",
+    "SIM102",
+    "PTH119",
+    "RUF012",
+]
+"src/**/build_skills_reference.py" = ["E501"]
+"src/**/export_public_tree.py" = ["E501"]
+# Opengrep fixture files are intentional code patterns — not real Python to execute.
+"harnessing/**/opengrep-rules/**" = [
+    "F821",
+    "F402",
+    "F405",
+    "UP031",
+    "SIM115",
+    "PTH123",
+    "PTH118",
+    "PTH100",
+    "E402",
+    "E501",
+]
+
+[tool.mypy]
+# Skill directories under harnessing/ use hyphenated names (e.g. validate-findings)
+# which are not valid Python package identifiers. Exclude the whole tree; skills
+# are loaded by file path, not imported as packages.
+exclude = ["harnessing/"]

@@ -1,0 +1,50 @@
+rules:
+  - id: traust-go-ssrf-request-taint
+    languages: [go]
+    severity: ERROR
+    message: >-
+      Request-derived value reaches an outbound HTTP call as the URL — the
+      caller can steer server-side requests at internal endpoints (cloud
+      metadata, kubelet, cluster services). Validate against an allowlist
+      before fetching. CWE-918.
+    metadata:
+      cwe: ["CWE-918"]
+      category: ssrf
+      asvs: ["V4"]
+      confidence: MEDIUM
+      references:
+        - "campaign cluster: CWE-918 SSRF (339 findings, 286 repos)"
+        - "recalibrated 2026-07-29: 0.07 campaign precision over 62 judged decisions — 44 dismissals were oapi-codegen/openapi generated clients (`queryURL.Query()` matched the generic `$C.Query(...)` source, URL base operator-configured): generated files now path-excluded, and values that pass through url.Parse are treated as sanitized (structured-parse-then-validate idiom). The generic `$C.Query(...)` source is deliberately KEPT: the confirmed TPs fire through the same url.URL shape in hand-written code (downgrade-not-drop). Known TPs preserved: openshift/cluster-version-operator CLUSTER_VERSION_OPERATOR-ea3fa76-005 (pkg/cincinnati/cincinnati.go:103), argoproj/argo-rollouts ARGO_ROLLOUTS-22276e3-003 (metricproviders/graphite/api.go:47), openshift/console CONSOLE-8f7cf70-026 (pkg/olm/catalog_client.go)"
+    mode: taint
+    pattern-sources:
+      - pattern-either:
+          - pattern: $R.URL.Query().Get(...)
+          - pattern: $R.URL.Query()[...]
+          - pattern: $R.FormValue(...)
+          - pattern: $R.PostFormValue(...)
+          - pattern: mux.Vars($R)
+          # generic context/url receivers — over-broad by design (the
+          # confirmed TPs fire through url.URL receivers in hand-written
+          # code); the generated-client FP mass is removed by the paths
+          # exclusion below instead
+          - pattern: $C.Param(...)
+          - pattern: $C.Query(...)
+    # values that went through structured URL parsing follow the
+    # parse-then-validate-host idiom; the remaining raw-string flow into
+    # an HTTP sink is the high-precision core of this rule
+    pattern-sanitizers:
+      - pattern: url.Parse(...)
+      - pattern: url.ParseRequestURI(...)
+    pattern-sinks:
+      - pattern-either:
+          - pattern: http.Get(...)
+          - pattern: http.Post(...)
+          - pattern: http.Head(...)
+          - pattern: http.NewRequest($M, ...)
+          - pattern: http.NewRequestWithContext($CTX, $M, ...)
+    paths:
+      exclude:
+        - "*.gen.go"
+        - "*_gen.go"
+        - "*generated*"
+        - "zz_generated*"

@@ -1,0 +1,28 @@
+id: python
+kind: language
+display_name: Python
+in_plain_english: >
+  Python's ssl module wraps the system OpenSSL. PQ TLS capability is
+  entirely determined by the linked OpenSSL version — Python itself
+  adds no PQ logic. Requires OpenSSL 3.5+ for ML-KEM support.
+quantum_tls:
+  by_default:
+    floors: {}
+    name: null
+  if_configured:
+    floors: {}
+    names: []
+  fips_preferred:
+    floors: {}
+    names: []
+turn_off: []
+unsupported: []
+details:
+  depends_on: openssl
+  fips_note: >
+    Python defers all crypto to OpenSSL. FIPS posture follows the
+    OpenSSL card and the OS crypto-policy.
+  policy_modes: null
+  sources:
+    - "https://aws.amazon.com/blogs/security/post-quantum-tls-in-python/"
+    - "https://docs.python.org/3/library/ssl.html"

@@ -1,0 +1,136 @@
+# Fleet-fix: re-enable TLS certificate validation on credential-bearing
+# Ansible uri/get_url calls that disable it.
+#
+# Pattern: 2026-07 cloud-config Phase-0 sweep, Checkov CKV_ANSIBLE_1
+# (uri) / CKV_ANSIBLE_2 (get_url) — TLS validation disabled where
+# credentials transit (CWE-295). Confirmed in 4 repos:
+#   - openshift/assisted-test-infra   CCA-assisted-test-infra-004 (high)
+#   - openstack-k8s-operators/ci-framework  CCA-ci-framework-001 (high),
+#     CCA-ci-framework-002 (high)
+#   - quay/mirror-registry            CCA-mirror-registry-001 (medium)
+#   - openshift/openshift-ansible     CCA-openshift-ansible-001 (high)
+# Fix: flip literal `validate_certs: false` / `validate_certs: no` to
+# `validate_certs: true` inside uri:/get_url: module blocks in exactly
+# the task files the findings cite (file_glob is the cited-path union).
+#
+# SCOPE, derived from the findings (do not widen without new evidence):
+#   - Only literal false/no values are rewritten. Jinja-templated values
+#     (e.g. validate_certs: "{{ cifmw_..._validate_certs }}") in several
+#     cited ci-framework files are default-configuration issues the line
+#     matcher must not rewrite; they no-match and are recorded as
+#     residue for the owning team.
+#   - The context gate (a uri:/get_url: module key within 12 lines
+#     above) keeps the rewrite off other modules' validate_certs flags
+#     (e.g. kubernetes.core.k8s_drain / community.okd.openshift_auth in
+#     ci-framework's wait_for_cluster.yml), which the Checkov facts do
+#     not cover.
+#   - Some flips (e.g. ci-framework install_ca fetching an internal CA)
+#     may require the owner to supply a CA bundle before the task
+#     passes again — that is the intended, reviewable outcome of the MR.
+#
+# No resolver: pure line rewrite; apply with --pin <40 hex> (value
+# unused by the template) so the applier skips URL resolution.
+id: tls-verify-enable
+pattern_ref: "Cloud-config Phase-0 sweep 2026-07: CKV_ANSIBLE_1/CKV_ANSIBLE_2 — TLS certificate validation disabled on credential-bearing uri/get_url tasks"
+description: >-
+  Rewrites literal `validate_certs: false|no` lines to
+  `validate_certs: true` when a uri:/get_url: module key appears within
+  the preceding 12 lines, restricted to the exact task files cited by
+  the four confirmed Phase-0 findings. Templated values and
+  non-uri/get_url modules are intentionally left untouched.
+matcher:
+  kind: pinned_ref_line
+  # union of the file paths cited by the four findings' locations
+  file_glob:
+    # openshift/assisted-test-infra — CCA-assisted-test-infra-004
+    - "ansible_files/roles/ofcir_acquire/tasks/main.yml"
+    - "ansible_files/roles/ofcir_release/tasks/main.yml"
+    # openstack-k8s-operators/ci-framework — CCA-ci-framework-001/-002
+    - "roles/bm_sno/tasks/bm_check_usb_boot.yml"
+    - "roles/bm_sno/tasks/bm_discover_vmedia_target.yml"
+    - "roles/bm_sno/tasks/bm_power_off.yml"
+    - "roles/bm_sno/tasks/main.yml"
+    - "roles/cifmw_cephadm/tasks/dashboard/validation.yml"
+    - "roles/federation/tasks/hook_multirealm_controlplane_config.yml"
+    - "roles/federation/tasks/run_keycloak_client_setup.yml"
+    - "roles/federation/tasks/run_keycloak_setup.yml"
+    - "roles/idrac_configuration/tasks/check_bios.yml"
+    - "roles/idrac_configuration/tasks/clear_job_inventory.yml"
+    - "roles/idrac_configuration/tasks/clear_pending_configuration.yml"
+    - "roles/idrac_configuration/tasks/healthcheck.yml"
+    - "roles/idrac_configuration/tasks/racreset.yml"
+    - "roles/idrac_configuration/tasks/retrieve_idrac_jobs.yml"
+    - "roles/install_ca/tasks/main.yml"
+    - "roles/ipa/tasks/run_ipa_setup.yml"
+    - "roles/openshift_adm/tasks/wait_for_cluster.yml"
+    # quay/mirror-registry — CCA-mirror-registry-001
+    - "ansible-runner/context/app/project/roles/mirror_appliance/tasks/create-init-user.yaml"
+    - "ansible-runner/context/app/project/roles/mirror_appliance/tasks/wait-for-quay.yaml"
+    # openshift/openshift-ansible — CCA-openshift-ansible-001
+    - "roles/openshift_node/tasks/config.yml"
+  # bare or FQCN module key: uri:, get_url:, ansible.builtin.uri:, ...
+  context_regex: '^\s*(?:[\w.]+\.)?(?:uri|get_url):\s*$'
+  # max observed distance from the module key to a literal
+  # validate_certs line across the cited files is 12
+  # (ci-framework bm_discover_vmedia_target.yml)
+  context_window: 12
+  match_regex: '^(\s*)validate_certs:\s*"?(false|no)"?\s*$'
+rewrite:
+  template: "{indent}validate_certs: true  # fleet-fix({id}): TLS verification re-enabled ({date})"
+guards:
+  max_files_changed: 12
+  require_clean_tree: true
+tests:
+  - name: flips validate_certs false on an authenticated uri call
+    file: roles/openshift_node/tasks/config.yml
+    before: |
+      - name: Fetch bootstrap ignition
+        uri:
+          url: https://api-int.example.com:22623/config/worker
+          headers:
+            Authorization: Bearer abc
+          validate_certs: false
+        register: bootstrap_ignition
+    after_contains:
+      - "validate_certs: true  # fleet-fix({id}): TLS verification re-enabled"
+    after_not_contains:
+      - "validate_certs: false"
+  - name: flips validate_certs no on an FQCN get_url download
+    file: roles/install_ca/tasks/main.yml
+    before: |
+      - name: Download internal CA bundle
+        ansible.builtin.get_url:
+          url: https://ca.internal.example.com/ca.crt
+          dest: /etc/pki/ca-trust/source/anchors/internal.crt
+          mode: "0644"
+          validate_certs: no
+    after_contains:
+      - "validate_certs: true  # fleet-fix({id})"
+    after_not_contains:
+      - "validate_certs: no"
+  - name: leaves non-uri modules (k8s_drain) alone — outside the facts
+    file: roles/openshift_adm/tasks/wait_for_cluster.yml
+    before: |
+      - name: Uncordon nodes
+        kubernetes.core.k8s_drain:
+          name: node-0
+          state: uncordon
+          kubeconfig: /root/kubeconfig
+          validate_certs: false
+    after_contains:
+      - "validate_certs: false"
+    after_not_contains:
+      - "validate_certs: true"
+  - name: leaves jinja-templated values alone
+    file: roles/idrac_configuration/tasks/racreset.yml
+    before: |
+      - name: Reset iDRAC
+        ansible.builtin.uri:
+          url: https://bmc.example.com/redfish/v1/Managers/iDRAC.Embedded.1
+          user: root
+          password: calvin
+          validate_certs: "{{ cifmw_idrac_configuration_validate_ssl_certs }}"
+    after_contains:
+      - "cifmw_idrac_configuration_validate_ssl_certs"
+    after_not_contains:
+      - "validate_certs: true"

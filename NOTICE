@@ -1,0 +1,60 @@
+AI Security Assessment Harness
+Copyright (c) 2025-2026 Red Hat, Inc.
+
+This product includes software developed by third parties.
+
+1. defending-code-reference-harness
+   Copyright 2026 Anthropic PBC
+   Licensed under the Apache License, Version 2.0
+   (full text: LICENSES/Apache-2.0.txt)
+
+   The following components are derivative works of that project's
+   Claude Code skills, modified by Red Hat (modification history in
+   CHANGELOG.md):
+
+     - harnessing/4-triage/triage/        (ported at harness v0.22.0)
+     - harnessing/2-threat-model/threat-model/  (ported at harness v0.23.0)
+     - harnessing/7-remediate/patch/         (ported at harness v0.23.0)
+     - harnessing/3-audit/vuln-scan/     (ported at harness v0.37.0)
+     - src/traust/cli/checkpoint.py     (from the origin's skill library)
+
+2. claude-code-security-review
+   https://github.com/anthropics/claude-code-security-review
+   Copyright (c) 2025 Anthropic
+   Licensed under the MIT License
+   (full text: LICENSES/MIT-claude-code-security-review.txt)
+
+   The vuln-scan skill's vulnerability category menu, DO-NOT-REPORT
+   false-positive exclusions, per-finding confidence pass, and the
+   exploit_scenario/recommendation output fields are adapted from that
+   project's /security-review command.
+
+--------------------------------------------------------------------------
+
+The following third-party software is NOT embedded in or vendored into
+this source distribution — the harness invokes it as an unmodified
+subprocess on PATH, or fetches it at run time to a local cache. No
+license obligation attaches to this source repository for these. The
+license texts are carried here so that any downstream distribution which
+DOES bundle them (a job image, a packaged release) already ships the
+required notices; carriage is prepared, not triggered.
+
+3. YARA (engine)
+   https://github.com/VirusTotal/yara
+   Copyright (c) 2007-2016. The YARA Authors. All Rights Reserved.
+   Licensed under the BSD 3-Clause License
+   (full text: LICENSES/BSD-3-Clause-yara.txt)
+
+   Invoked as an unmodified subprocess binary by the yara adapter (`traust adapters yara`, traust_engine.adapters.yara)
+   (the malware-family pre-scan for secure-container-audit and
+   secure-rpm-audit). Not linked, not vendored.
+
+4. ReversingLabs YARA Rules
+   https://github.com/reversinglabs/reversinglabs-yara-rules
+   Copyright (c) 2020 ReversingLabs
+   Licensed under the MIT License
+   (full text: LICENSES/MIT-reversinglabs-yara-rules.txt)
+
+   The default rule pack for the yara adapter (`traust adapters yara`) — fetched at run time
+   to the user cache, pinned by commit SHA (RL_RULES_SHA), never
+   vendored into this tree. A swappable input, replaceable via --rules.

@@ -1,0 +1,197 @@
+- id: API_RSA_KEYPAIR_GENERATOR
+  kind: regex
+  category: CryptoAPI
+  severity: high
+  risk: quantum-vulnerable
+  confidence: 0.65
+  migration_hint: Replace key-generation APIs with PQC-capable implementations.
+  pattern: "KeyPairGenerator\\.getInstance\\(\\s*\"RSA\""
+  scope: code
+  description: Java RSA key-generation API usage detected.
+
+- id: API_SIGNATURE_RSA
+  kind: regex
+  category: CryptoAPI
+  severity: high
+  risk: quantum-vulnerable
+  confidence: 0.62
+  migration_hint: Migrate to ML-DSA signing APIs.
+  pattern: "Signature\\.getInstance\\(\\s*\"SHA(1|224|256|384|512)withRSA\""
+  scope: code
+  description: RSA signature API usage detected.
+
+- id: API_CIPHER_RSA
+  kind: regex
+  category: CryptoAPI
+  severity: high
+  risk: quantum-vulnerable
+  confidence: 0.64
+  migration_hint: Migrate to hybrid KEM+AEAD cryptographic design.
+  pattern: "Cipher\\.getInstance\\(\\s*\"RSA"
+  scope: code
+  description: RSA cipher API usage detected.
+
+- id: API_OPENSSL_RSA_NEW
+  kind: regex
+  category: CryptoAPI
+  severity: medium
+  risk: quantum-vulnerable
+  confidence: 0.55
+  migration_hint: Prefer high-level OpenSSL EVP APIs to ease PQC migration.
+  pattern: "\\bRSA_new\\b|\\bRSA_generate_key_ex\\b"
+  scope: code
+  description: OpenSSL low-level RSA API usage detected.
+
+- id: API_EVP_PKEY_RSA
+  kind: regex
+  category: CryptoAPI
+  severity: medium
+  risk: quantum-vulnerable
+  confidence: 0.54
+  migration_hint: Use EVP_PKEY abstraction to prepare key-type replacement for PQC.
+  pattern: "EVP_PKEY_(RSA|set1_RSA)"
+  scope: code
+  description: EVP_PKEY configured for RSA detected.
+
+- id: API_GO_CRYPTO_RSA
+  kind: regex
+  category: CryptoAPI
+  severity: medium
+  risk: quantum-vulnerable
+  confidence: 0.52
+  migration_hint: Introduce hybrid PQC key sharing in Go services.
+  pattern: "\\bcrypto/rsa\\b"
+  scope: code
+  description: Go crypto/rsa usage detected.
+
+- id: API_NODE_CRYPTO_SIGN_RSA
+  kind: regex
+  category: CryptoAPI
+  severity: medium
+  risk: quantum-vulnerable
+  confidence: 0.50
+  migration_hint: Plan PQC replacement for node:crypto RSA operations.
+  pattern: "create(Sign|Verify)\\(\\s*['\"]RSA"
+  scope: code
+  description: Node.js RSA signing API usage detected.
+
+- id: API_PY_RSA_MODULE
+  kind: regex
+  category: CryptoAPI
+  severity: medium
+  risk: quantum-vulnerable
+  confidence: 0.50
+  migration_hint: Evaluate PQC-capable libraries for Python crypto implementations.
+  pattern: "from\\s+Crypto\\.PublicKey\\s+import\\s+RSA|cryptography\\.hazmat\\.primitives\\.asymmetric\\.rsa"
+  scope: code
+  description: Python RSA API usage detected.
+
+- id: API_JOSE_RSA_ALG
+  kind: regex
+  category: CryptoAPI
+  severity: high
+  risk: quantum-vulnerable
+  confidence: 0.63
+  migration_hint: Update JOSE algorithms to PQC-ready alternatives.
+  pattern: "\\b(RS256|RS384|RS512|PS256|PS384|PS512)\\b"
+  scope: code
+  description: RSA-family JOSE algorithm detected.
+
+- id: API_BC_RSA_ENGINE
+  kind: regex
+  category: CryptoAPI
+  severity: medium
+  risk: quantum-vulnerable
+  confidence: 0.58
+  migration_hint: Migrate to BouncyCastle PQC APIs.
+  pattern: "\\bRSAEngine\\b|\\bRSABlindedEngine\\b"
+  scope: code
+  description: BouncyCastle RSA engine usage detected.
+
+- id: DEP_PYCRYPTODOME
+  kind: dependency
+  category: CryptoAPI
+  severity: medium
+  risk: quantum-uncertain
+  confidence: 0.45
+  migration_hint: Verify available PQC extensions for this dependency set.
+  pattern: "(?i)\\bpycryptodome\\b"
+  scope: dependency
+  description: pycryptodome dependency detected.
+
+- id: DEP_PYCA_CRYPTOGRAPHY
+  kind: dependency
+  category: CryptoAPI
+  severity: medium
+  risk: quantum-uncertain
+  confidence: 0.45
+  migration_hint: Track PQC support status in the cryptography package.
+  pattern: "(?i)^\\s*cryptography(==|>=|<=|~=|\\s|$)"
+  scope: dependency
+  description: Python cryptography dependency detected.
+
+- id: DEP_GO_JOSE
+  kind: dependency
+  category: CryptoAPI
+  severity: low
+  risk: quantum-uncertain
+  confidence: 0.42
+  migration_hint: Confirm PQC support status in go-jose.
+  pattern: "(?i)\\bgo-jose\\b|gopkg\\.in/square/go-jose"
+  scope: dependency
+  description: Go JOSE dependency detected.
+
+- id: DEP_JAVA_BOUNCYCASTLE
+  kind: dependency
+  category: CryptoAPI
+  severity: medium
+  risk: quantum-uncertain
+  confidence: 0.47
+  migration_hint: Evaluate adoption of BouncyCastle PQC provider modules.
+  pattern: "(?i)org\\.bouncycastle|bcpkix|bcprov"
+  scope: dependency
+  description: Java BouncyCastle dependency detected.
+
+- id: DEP_RUST_OPENSSL
+  kind: dependency
+  category: CryptoAPI
+  severity: medium
+  risk: quantum-uncertain
+  confidence: 0.46
+  migration_hint: Track PQC migration options for Rust openssl/rustls crypto stacks.
+  pattern: "(?i)pkg:cargo/[^\\s]*(openssl(-sys)?|rustls)"
+  scope: dependency
+  description: Rust TLS/crypto dependency detected.
+
+- id: DEP_RUST_RSA_CRATE
+  kind: dependency
+  category: CryptoAPI
+  severity: medium
+  risk: quantum-vulnerable
+  confidence: 0.50
+  migration_hint: Plan migration away from classical RSA crates in Rust workloads.
+  pattern: "(?i)pkg:cargo/[^\\s]*(rsa|jsonwebtoken)"
+  scope: dependency
+  description: Rust RSA/JWT dependency detected.
+
+- id: DEP_RUBY_OPENSSL
+  kind: dependency
+  category: CryptoAPI
+  severity: medium
+  risk: quantum-uncertain
+  confidence: 0.44
+  migration_hint: Review OpenSSL usage in Ruby and prepare PQC migration path.
+  pattern: "(?i)pkg:gem/[^\\s]*openssl"
+  scope: dependency
+  description: Ruby OpenSSL dependency detected.
+
+- id: DEP_RUBY_JWT
+  kind: dependency
+  category: CryptoAPI
+  severity: medium
+  risk: quantum-vulnerable
+  confidence: 0.48
+  migration_hint: Replace RSA-based JWT signing in Ruby with PQC-ready options.
+  pattern: "(?i)pkg:gem/[^\\s]*jwt"
+  scope: dependency
+  description: Ruby JWT dependency detected.

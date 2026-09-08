@@ -1,0 +1,95 @@
+{
+ "version": 1,
+ "namespace": "vb-bench",
+ "floors": {
+  "confirm_recall": 0.9,
+  "refute_precision": 0.9,
+  "severity_within": 1.0
+ },
+ "fixtures": [
+  {
+   "id": "VB-RBAC-1",
+   "probe_class": "rbac",
+   "claim": {
+    "title": "ServiceAccount vb-rbac-sa can read secrets cluster-wide",
+    "severity": "high",
+    "cvss": 8.2,
+    "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:C/C:H/I:N/A:N",
+    "cwes": [
+     "CWE-269"
+    ],
+    "category": "authorization"
+   },
+   "vuln_manifest": "rbac-overgrant.vuln.yaml",
+   "safe_manifest": "rbac-overgrant.safe.yaml",
+   "expected": {
+    "vuln": "confirmed",
+    "safe": "refuted"
+   },
+   "controls_hint": "control: SA lists configmaps in vb-bench (known-allowed); differential: same SA, verb it lacks entirely (create nodes)"
+  },
+  {
+   "id": "VB-SCC-1",
+   "probe_class": "scc",
+   "claim": {
+    "title": "default SA in vb-bench may use the privileged SCC",
+    "severity": "critical",
+    "cvss": 9.1,
+    "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:C/C:H/I:H/A:H",
+    "cwes": [
+     "CWE-250"
+    ],
+    "category": "insecure-workload-config"
+   },
+   "vuln_manifest": "scc-privileged.vuln.yaml",
+   "safe_manifest": "scc-privileged.safe.yaml",
+   "expected": {
+    "vuln": "confirmed",
+    "safe": "refuted"
+   },
+   "controls_hint": "control: default SA uses restricted-v2 (must succeed); E0 = pod admitted with privileged: true"
+  },
+  {
+   "id": "VB-SEC-1",
+   "probe_class": "secret",
+   "claim": {
+    "title": "Database credential exposed in world-readable ConfigMap",
+    "severity": "high",
+    "cvss": 7.7,
+    "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N",
+    "cwes": [
+     "CWE-522"
+    ],
+    "category": "secrets-management"
+   },
+   "vuln_manifest": "secret-exposure.vuln.yaml",
+   "safe_manifest": "secret-exposure.safe.yaml",
+   "expected": {
+    "vuln": "confirmed",
+    "safe": "refuted"
+   },
+   "controls_hint": "control: read the planted vb-app-config Secret with an authorized identity (proves the oracle sees the store); grep canary string"
+  },
+  {
+   "id": "VB-WH-1",
+   "probe_class": "webhook",
+   "claim": {
+    "title": "Validating webhook fails open across all resources",
+    "severity": "medium",
+    "cvss": 6.5,
+    "cvss_vector": "CVSS:3.1/AV:N/AC:H/PR:L/UI:N/S:U/C:N/I:H/A:N",
+    "cwes": [
+     "CWE-636"
+    ],
+    "category": "insecure-workload-config"
+   },
+   "vuln_manifest": "webhook-permissive.vuln.yaml",
+   "safe_manifest": "webhook-permissive.safe.yaml",
+   "expected": {
+    "vuln": "confirmed",
+    "safe": "refuted"
+   },
+   "controls_hint": "E0 for vuln = a Deployment admitted while the webhook service is down; safe twin must reject (fail closed)"
+  }
+ ]
+}

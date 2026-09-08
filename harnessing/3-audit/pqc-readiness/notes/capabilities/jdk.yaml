@@ -1,0 +1,30 @@
+id: jdk
+kind: language
+display_name: JDK
+in_plain_english: >
+  JDK 27 is the first release with post-quantum TLS by default.
+  JDK 24 adds ML-KEM APIs only — that is not TLS readiness.
+quantum_tls:
+  by_default:
+    floors: { "*": "27" }
+    name: "X25519MLKEM768"
+  if_configured:
+    floors: {}
+    names: []
+  fips_preferred:
+    floors: {}
+    names: []
+turn_off:
+  - { value: "jdk.tls.namedGroups", direct: true }
+unsupported: []
+details:
+  depends_on: null
+  fips_note: null
+  policy_modes: null
+  api_only_since: "24"
+  notes:
+    - "JEP 496/497 (JDK 24) are javax.crypto / java.security APIs — not TLS."
+    - "TLS hybrid KEX default is JEP 527 (JDK 27)."
+  sources:
+    - "https://openjdk.org/jeps/527"
+    - "https://openjdk.org/jeps/496"

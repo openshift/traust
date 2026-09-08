@@ -1,0 +1,142 @@
+- id: JWT_RS256
+  kind: regex
+  category: JWT
+  severity: high
+  risk: quantum-vulnerable
+  confidence: 0.60
+  migration_hint: Migrate to ML-DSA signatures.
+  pattern: "\\bRS256\\b"
+  scope: code
+  description: RS256 (RSA-based JWT signing) is in use.
+
+- id: JWT_RS384
+  kind: regex
+  category: JWT
+  severity: high
+  risk: quantum-vulnerable
+  confidence: 0.60
+  migration_hint: Migrate to ML-DSA signatures.
+  pattern: "\\bRS384\\b"
+  scope: code
+  description: RS384 is used for JWT signing.
+
+- id: JWT_RS512
+  kind: regex
+  category: JWT
+  severity: high
+  risk: quantum-vulnerable
+  confidence: 0.60
+  migration_hint: Migrate to ML-DSA signatures.
+  pattern: "\\bRS512\\b"
+  scope: code
+  description: RS512 is used for JWT signing.
+
+- id: JWT_PS256
+  kind: regex
+  category: JWT
+  severity: high
+  risk: quantum-vulnerable
+  confidence: 0.55
+  migration_hint: Migrate to ML-DSA signatures.
+  pattern: "\\bPS256\\b"
+  scope: code
+  description: PS256 (RSA-PSS) is used for JWT signing.
+
+- id: JWT_PS384
+  kind: regex
+  category: JWT
+  severity: high
+  risk: quantum-vulnerable
+  confidence: 0.55
+  migration_hint: Migrate to ML-DSA signatures.
+  pattern: "\\bPS384\\b"
+  scope: code
+  description: PS384 (RSA-PSS) is used for JWT signing.
+
+- id: JWT_PS512
+  kind: regex
+  category: JWT
+  severity: high
+  risk: quantum-vulnerable
+  confidence: 0.55
+  migration_hint: Migrate to ML-DSA signatures.
+  pattern: "\\bPS512\\b"
+  scope: code
+  description: PS512 (RSA-PSS) is used for JWT signing.
+
+- id: JWT_ES256
+  kind: regex
+  category: JWT
+  severity: medium
+  risk: quantum-uncertain
+  confidence: 0.50
+  migration_hint: Plan migration from ECDSA to PQC signatures.
+  pattern: "\\bES256\\b"
+  scope: code
+  description: ES256 (ECDSA-based JWT signing) is in use.
+
+- id: JWT_LIB_JSONWEBTOKEN
+  kind: dependency
+  category: JWT
+  severity: medium
+  risk: quantum-uncertain
+  confidence: 0.48
+  migration_hint: Review the library roadmap for PQC-ready algorithms.
+  pattern: "(?i)\\bjsonwebtoken\\b"
+  scope: dependency
+  description: jsonwebtoken dependency detected.
+
+- id: JWT_LIB_JOSE
+  kind: dependency
+  category: JWT
+  severity: medium
+  risk: quantum-uncertain
+  confidence: 0.45
+  migration_hint: Verify PQC support in the JOSE implementation.
+  pattern: "(?i)\\bjose\\b"
+  scope: dependency
+  description: jose dependency detected.
+
+- id: JWT_KID_HEADER
+  kind: regex
+  category: JWT
+  severity: low
+  risk: quantum-uncertain
+  confidence: 0.35
+  migration_hint: Add PQC keys into the key-rotation strategy.
+  pattern: "\"kid\"\\s*:"
+  scope: code
+  description: JWT kid header usage detected, indicating key-management touch points.
+
+- id: JWK_RSA_KEY
+  kind: regex
+  category: JWT
+  severity: high
+  risk: quantum-vulnerable
+  confidence: 0.62
+  migration_hint: Migrate JWKs to ML-DSA or hybrid key types.
+  pattern: "\"kty\"\\s*:\\s*\"RSA\""
+  scope: code
+  description: RSA key type in JWK detected.
+
+- id: JWT_SIGNING_METHOD_RS
+  kind: regex
+  category: JWT
+  severity: high
+  risk: quantum-vulnerable
+  confidence: 0.65
+  migration_hint: Migrate to ML-DSA signatures.
+  pattern: "SigningMethodRS(256|384|512)"
+  scope: code
+  description: RS* JWT signing method is used in code.
+
+- id: OIDC_ID_TOKEN_SIGALG
+  kind: regex
+  category: JWT
+  severity: medium
+  risk: quantum-uncertain
+  confidence: 0.40
+  migration_hint: Select PQC-ready algorithms in OIDC provider settings.
+  pattern: "id_token_signed_response_alg"
+  scope: code
+  description: OIDC ID token signature algorithm configuration detected.

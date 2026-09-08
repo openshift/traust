@@ -1,0 +1,34 @@
+id: node
+kind: language
+display_name: Node.js
+in_plain_english: >
+  Node gets post-quantum TLS from bundled OpenSSL 3.5, which landed on separate major lines.
+  Use the per-major floors; Node 23 never got it.
+quantum_tls:
+  by_default:
+    floors:
+      "22": "22.20.0"
+      "24": "24.5.0"
+      "25": "25.0.0"
+    name: "X25519MLKEM768"
+  if_configured:
+    floors: {}
+    names: []
+  fips_preferred:
+    floors: {}
+    names: []
+turn_off:
+  - { value: "--tls-max-v1.2", direct: false }
+unsupported: [23]
+details:
+  depends_on: openssl
+  fips_note: >
+    Node.js FIPS posture follows the linked OpenSSL FIPS provider. With
+    --enable-fips or --force-fips, PQC availability depends on whether
+    the OpenSSL FIPS provider cert covers ML-KEM groups.
+  policy_modes: null
+  notes:
+    - "No single Node semver floor works across majors."
+    - "23.x stayed on OpenSSL 3.0.x."
+  sources:
+    - "https://nodejs.org/en/blog/release/"

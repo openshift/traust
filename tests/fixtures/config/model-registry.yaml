@@ -1,0 +1,149 @@
+# Model Registry — the ONLY place vendor/model identifiers live.
+#
+# Policy data, not code (same discipline as corpus-config.yaml and the SLA
+# policy). Skills and docs name TIER CLASSES (mythos-class, opus-class,
+# sonnet-class, haiku-class); drivers resolve a role to a concrete model via
+#   python3 -m traust.cli registry models resolve <role>
+# Alignment rule A12 fails any skill/script that hardcodes a model ID
+# outside this file. See docs/model-routing.md.
+#
+# Promotion rule (multi-model-strategy-plan M3): a model enters `approved`
+# for a role only after recall-benchmark >= baseline-2pts, consistency-suite
+# thresholds, and a redaction/injection spot-check — recorded under `evals`.
+# Models without evals stay in `candidates` and never run campaign work.
+#
+# Floor enforcement (recorded 2026-07-31): floors are enforced at
+# resolution time (resolve refuses tier-downs) and commit time (schema +
+# A12), NOT at execution time — an interactive session runs whatever
+# model it was launched with, and ledger_validity_writer is contract
+# documentation, not a runtime gate. Runtime floor-check is scoped into
+# the circuit-breaker work alongside
+# budget enforcement. See docs/model-routing.md "Where the floor is
+# enforced".
+
+version: 1
+updated: "2026-07-24"
+
+tiers:
+  mythos-class:
+    description: frontier reasoning — verdict-writing and deep-audit floors
+  opus-class:
+    description: strong general reasoning — most orchestration and authoring
+  sonnet-class:
+    description: fast/cheap — mechanical judgment over deterministic anchors
+  haiku-class:
+    description: cheapest — routing, extraction, narration
+
+providers:
+  anthropic:
+    data_handling: approved (existing engagement; embargoed data in scope)
+    # Prices: PUBLISHED LIST PRICES (USD/MTok), Anthropic first-party rate
+    # card (filled 2026-07-24 from the claude-api pricing reference) —
+    # verify against the org's ACTUAL billing terms before treating
+    # dashboard dollars as billing truth: enterprise agreements and
+    # partner channels can differ from list, whatever the channel.
+    # Billing channel confirmed 2026-07-28: Anthropic first-party API
+    # for Claude Code campaign work (CLAUDE_CODE_USE_VERTEX disabled;
+    # the VERTEXAI_PROJECT env var serves the user's OTHER Vertex work
+    # and says nothing about this channel). cache_read ~0.1x input;
+    # cache_write ~1.25x input (5-min TTL; 1-hour TTL is ~2x).
+    models:
+      claude-mythos-5:        {tier: mythos-class, batch_eligible: true,  price_per_mtok_in: 10.0, price_per_mtok_out: 50.0}  # same rate card as claude-fable-5
+      claude-fable-5:         {tier: mythos-class, batch_eligible: true,  price_per_mtok_in: 10.0, price_per_mtok_out: 50.0}  # same rate card as claude-mythos-5; added 2026-07-28 so SCI's ratecard can consume the registry instead of hand-copying it (SCI PR #2 divergence)
+      claude-opus-5:          {tier: opus-class,   batch_eligible: true,  price_per_mtok_in: 5.0,  price_per_mtok_out: 25.0}  # corrected 2026-08-06 from 15/75 (stale Opus 4.1-era rate) to the published 5/25 — same bug already fixed for opus-4-8 below; verified against docs models overview. Overstated 2026-07 spend by ~$61K
+      claude-opus-4-8:        {tier: opus-class,   batch_eligible: true,  price_per_mtok_in: 5.0,  price_per_mtok_out: 25.0}  # corrected from 15/75 (Opus 4.1-era rate) to published 5/25
+      claude-opus-4-6:        {tier: opus-class,   batch_eligible: true,  price_per_mtok_in: 5.0,  price_per_mtok_out: 25.0}  # not on the published rate card; empirically derived by SCI (test-pinned against a live CLI-reported $1.0016 session) — adopted 2026-07-28 to close the SCI ratecard split
+      claude-sonnet-5:        {tier: sonnet-class, batch_eligible: true,  price_per_mtok_in: 3.0,  price_per_mtok_out: 15.0}
+      claude-haiku-4-5-20251001: {tier: haiku-class, batch_eligible: true, price_per_mtok_in: 1.0, price_per_mtok_out: 5.0}
+  # New vendors: data-handling + licensing intake FIRST (docs/
+  # external-dependencies.md), then eval-gated promotion (M3). Cost never
+  # overrides the embargo boundary.
+
+# Role -> routing. `floor` is the minimum tier; `approved` lists concrete
+# models cleared for campaign use TODAY; `candidates` are awaiting evals.
+# `claude_code_only` names runtime features the role currently depends on
+# (a cross-runtime pilot must replace or forgo them).
+roles:
+  deep-audit:
+    floor: mythos-class
+    approved: [claude-mythos-5]
+    candidates: []
+    ledger_validity_writer: true
+    claude_code_only: [subagent-fanout]
+    evals: {benchmarked_on: null, note: "recall-slice floors set empirically (v0.144.0)"}
+  threat-model:
+    floor: mythos-class
+    approved: [claude-mythos-5]
+    candidates: []
+    ledger_validity_writer: false
+  triage-verifier:
+    floor: mythos-class
+    approved: [claude-mythos-5]
+    candidates: []
+    ledger_validity_writer: true
+    claude_code_only: [subagent-fanout]
+    note: heterogeneous-panel pilot (one non-Anthropic voter) is M3 Pilot 1
+  fact-judge:
+    floor: sonnet-class
+    approved: [claude-sonnet-5, claude-opus-4-8, claude-mythos-5]
+    candidates: []
+    ledger_validity_writer: false
+    note: deterministic facts bound the blast radius; per-rule precision is
+      measured per model via scanner_correlation
+  patch-author:
+    floor: mythos-class
+    approved: [claude-mythos-5]
+    candidates: []
+    ledger_validity_writer: false
+    note: floor raised from opus-class 2026-07-31 (user directive) —
+      patching defaults to mythos; README minimum-viable already said
+      mythos-class, registry had lagged
+  patch-reviewer:
+    floor: mythos-class
+    approved: [claude-mythos-5]
+    candidates: []
+    ledger_validity_writer: false
+    note: floor raised from opus-class 2026-07-31 (user directive),
+      same batch as patch-author
+  validation-planner:
+    floor: mythos-class
+    approved: [claude-mythos-5]
+    candidates: []
+    ledger_validity_writer: true
+    claude_code_only: [subagent-fanout, effort-control]
+    note: scope-guard-critical; cross-vendor forbidden until two consecutive
+      quarterly benches pass (plan M4)
+  remediation:
+    floor: mythos-class
+    approved: [claude-mythos-5]
+    candidates: []
+    ledger_validity_writer: false
+    note: floor raised from opus-class 2026-07-31 (user directive),
+      same batch as patch-author
+  verification-verdict:
+    floor: mythos-class
+    approved: [claude-mythos-5]
+    candidates: []
+    ledger_validity_writer: true
+  fuzz-author:
+    floor: opus-class
+    approved: [claude-opus-4-8, claude-mythos-5]
+    candidates: []
+    ledger_validity_writer: false
+  render-narrate:
+    floor: haiku-class
+    approved: [claude-haiku-4-5-20251001, claude-sonnet-5, claude-opus-4-8]
+    candidates: []
+    ledger_validity_writer: false
+    note: dashboards, rollup prose, inventory routing, Jira sync — first
+      candidates for cross-runtime (Crush/Codex) pilots (M2/M3 Pilot 2)
+
+# Escalation ladder (M1): drivers start at the role floor and escalate one
+# tier when a trigger fires; the report records which tier judged what
+# (metadata.additional.model_routing). Never silent tier-downs.
+escalation:
+  triggers:
+    - dual-pass disagreement (v0.144.0 precedent)
+    - citation-gate failure on first-pass output
+    - finding severity >= high proposed by a sub-floor tier
+    - judge flip detected by the consistency monitors

@@ -1,0 +1,110 @@
+rules:
+  - id: traust-go-cryptography-tls-skip-verify
+    languages: [go]
+    severity: ERROR
+    message: >-
+      TLS certificate verification disabled — every connection through this
+      config accepts any certificate, so an on-path attacker can read or
+      rewrite the traffic. Pin the expected CA instead. CWE-295.
+    metadata:
+      cwe: ["CWE-295"]
+      category: cryptography
+      asvs: ["V12"]
+      confidence: HIGH
+      references:
+        - "campaign cluster: CWE-295 Improper Certificate Validation (860 findings, 673 repos)"
+    patterns:
+      - pattern-either:
+          - pattern: "tls.Config{..., InsecureSkipVerify: true, ...}"
+          - pattern: $CFG.InsecureSkipVerify = true
+
+  - id: traust-go-cryptography-weak-hash
+    languages: [go]
+    severity: INFO
+    message: >-
+      MD5/SHA-1 in use — fine for non-security checksums, broken for
+      anything an attacker benefits from colliding (signatures, passwords,
+      integrity of untrusted input). Judge the context. CWE-328.
+    metadata:
+      cwe: ["CWE-328", "CWE-327"]
+      category: cryptography
+      asvs: ["V11"]
+      confidence: LOW
+      references:
+        - "campaign cryptography clusters (weak digest in security context)"
+    patterns:
+      - pattern-either:
+          - pattern: md5.New()
+          - pattern: md5.Sum(...)
+          - pattern: sha1.New()
+          - pattern: sha1.Sum(...)
+
+  - id: traust-go-cryptography-math-rand-secret
+    languages: [go]
+    severity: WARNING
+    message: >-
+      math/rand output assigned to a secret-looking variable — math/rand is
+      deterministic and seedable, so generated tokens/keys are predictable.
+      Use crypto/rand. CWE-338.
+    metadata:
+      cwe: ["CWE-338"]
+      category: cryptography
+      asvs: ["V11"]
+      confidence: MEDIUM
+      references:
+        - "campaign cryptography clusters (predictable token generation)"
+    patterns:
+      - pattern-either:
+          - pattern: $X := rand.Intn(...)
+          - pattern: $X = rand.Intn(...)
+          - pattern: $X := rand.Int63(...)
+          - pattern: $X := rand.Perm(...)
+      - metavariable-regex:
+          metavariable: $X
+          regex: (?i).*(token|secret|password|passwd|nonce|apikey|api_key|sessionid|session_id).*
+
+  - id: traust-go-cryptography-cosign-classical-signing
+    languages: [go]
+    severity: INFO
+    message: >-
+      sigstore/cosign signing library imported — signatures are ECDSA-based
+      (classical, Shor-vulnerable) and artifact signatures carry multi-year
+      verification lifetimes (NIST IR 8547: classical PK disallowed after
+      2035). Not a defect today: inventory it, tag the finding
+      pqc_classification=shor-signature, and track the sigstore PQC
+      roadmap. CWE-327.
+    metadata:
+      cwe: ["CWE-327"]
+      category: cryptography
+      asvs: ["V11"]
+      confidence: HIGH
+      pqc_classification: shor-signature
+      references:
+        - "PQC pilot calibration 2026-07-18: HP_SIGN_COSIGN — quoted-import anchored after the bare-'sigstore' pattern produced 38/38 FPs on docstrings/lockfiles"
+    patterns:
+      - pattern-regex: '"github\.com/sigstore/(cosign|sigstore-go|rekor|fulcio)[^"]*"'
+
+  # v1.5 config/DSN tranche. Derived from false-negative analysis: DSNs
+  # assembled in config code (rather than at the call site) escape review,
+  # including framework-rendered DSNs emitted per tenant app and driver
+  # defaults that disable TLS silently. The class measured a ~75% audit
+  # false-negative rate.
+  - id: traust-go-cryptography-insecure-dsn-transport
+    languages: [go]
+    severity: ERROR
+    message: >-
+      A database connection string is built with TLS disabled or
+      unverified (sslmode=disable/allow/prefer, mysql tls=false or
+      tls=skip-verify, ssl-mode=DISABLED) — queries and credentials cross
+      the network in plaintext or without server authentication. Default
+      to verify-full / tls=true and make any insecure mode an explicit,
+      documented opt-out. CWE-319.
+    metadata:
+      cwe: ["CWE-319"]
+      category: cryptography
+      asvs: ["V12"]
+      confidence: HIGH
+      references:
+        - "measured miss: config-assembled and framework-rendered DSNs, plus driver TLS defaults (class FN in 9 of 12 sampled repositories)"
+    patterns:
+      - pattern-regex: (?i)sslmode=(disable|allow|prefer)|[?&]tls=(false|skip-verify)|ssl-mode=disabled

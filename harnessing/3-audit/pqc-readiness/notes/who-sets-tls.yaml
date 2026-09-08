@@ -1,0 +1,47 @@
+# Ownership seed: first match wins.
+# After matching, keep exploring until do_next names an owner + action.
+
+enum:
+  - this_app
+  - language_defaults
+  - platform
+  - mesh_or_ingress
+  - external_server
+  - unknown
+
+explore_stop: >
+  Ownership is resolved when you can emit a concrete do_next with
+  who in {platform, app, language, unknown} — not when a pattern merely matched.
+
+governance_map:
+  self: this_app
+  language-runtime: language_defaults
+  platform: platform
+  infrastructure: external_server
+
+patterns:
+  - match: { signal: platform_tls_governance }
+    who_sets_tls: platform
+    note: "App reads a platform-managed TLS profile or policy."
+  - match: { signal: first_party_tls_listener, platform_profile_consumed: false }
+    who_sets_tls: this_app
+    note: >-
+      App terminates TLS in-process without consuming the platform TLS
+      profile — static server config = profile non-adherence where a
+      managed profile exists.
+  - match: { signal: db_client_tls }
+    who_sets_tls: external_server
+    note: "Client TLS to a server this repo does not control."
+  - match: { signal: group_or_curve_pin }
+    who_sets_tls: this_app
+    note: "TLS group/curve pin in app or middleware config."
+  - match: { has_curve_pin: true }
+    who_sets_tls: this_app
+  - match: { signal: env_override }
+    who_sets_tls: this_app
+    note: "Environment variable that disables or forces a crypto setting."
+  - match: { mesh_tls: true }
+    who_sets_tls: mesh_or_ingress
+  - match: { provider_census_only: true }
+    who_sets_tls: language_defaults
+    note: "Version/provider facts only; no pins or platform governors."

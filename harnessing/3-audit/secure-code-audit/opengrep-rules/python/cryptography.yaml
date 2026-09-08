@@ -1,0 +1,66 @@
+rules:
+  - id: traust-python-cryptography-requests-verify-false
+    languages: [python]
+    severity: ERROR
+    message: >-
+      TLS certificate verification disabled on an outbound request — an
+      on-path attacker can read or rewrite the exchange. Pin the expected
+      CA bundle instead. CWE-295.
+    metadata:
+      cwe: ["CWE-295"]
+      category: cryptography
+      asvs: ["V12"]
+      confidence: HIGH
+      references:
+        - "campaign cluster: CWE-295 Improper Certificate Validation (860 findings, 673 repos)"
+    patterns:
+      - pattern-either:
+          - pattern: requests.$F(..., verify=False, ...)
+          - pattern: $SESSION.verify = False
+          - pattern: httpx.$F(..., verify=False, ...)
+
+  - id: traust-python-cryptography-ssl-wrap-socket
+    languages: [python]
+    severity: ERROR
+    message: >-
+      ssl.wrap_socket() performs no certificate-chain validation and no
+      hostname checking (CERT_NONE default) — 'TLS' without
+      authentication — and was removed in Python 3.12. Use
+      ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT).wrap_socket(sock,
+      server_hostname=host) so default verification applies. CWE-295.
+    metadata:
+      cwe: ["CWE-295"]
+      category: cryptography
+      asvs: ["V12"]
+      confidence: HIGH
+      references:
+        - "seeded: AWX FN-probe 2026-07-21 (irc_backend.py TLS factory)"
+    patterns:
+      - pattern-either:
+          - pattern: ssl.wrap_socket
+          - pattern: ssl.wrap_socket(...)
+
+  # v1.5 config/DSN tranche. Derived from: fn-analysis.md §4 — the
+  # sslmode=disable / plaintext-DSN class had a measured ~75% audit FN
+  # rate (data-science-pipelines MySQL DSN defaults, syndesis
+  # server/templates, saas-templates 9/11 DB legs). Python twin of
+  # traust-go-cryptography-insecure-dsn-transport.
+  - id: traust-python-cryptography-insecure-dsn-transport
+    languages: [python]
+    severity: ERROR
+    message: >-
+      A database connection string is built with TLS disabled or
+      unverified (sslmode=disable/allow/prefer, mysql ssl-mode=DISABLED
+      or tls=false) — queries and credentials cross the network in
+      plaintext or without server authentication. Default to verify-full
+      and make any insecure mode an explicit, documented opt-out.
+      CWE-319.
+    metadata:
+      cwe: ["CWE-319"]
+      category: cryptography
+      asvs: ["V12"]
+      confidence: HIGH
+      references:
+        - "measured miss: fn-analysis §4 PQC cross-check — data-science-pipelines MySQL DSN default, saas-templates, syndesis (9/12 repos' class FN)"
+    patterns:
+      - pattern-regex: (?i)sslmode=(disable|allow|prefer)|[?&]tls=(false|skip-verify)|ssl-mode=disabled

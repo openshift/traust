@@ -1,0 +1,532 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://red.ht/traust/crypto-analysis/governance-chain.schema.json",
+  "title": "Crypto Analysis Governance Chain",
+  "description": "Ordered governance chain from decision origin to call site for a crypto fact. Expresses who decided a crypto configuration, not just where it appears in code. General-purpose: covers classical crypto posture, algorithm strength, and PQC readiness. Compatible with pqc_facts.py provenance_hint() and pqc-readiness-decision-tree.json tls_control_crosswalk when used in PQC context.",
+  "type": "object",
+  "required": [
+    "fact_id",
+    "chain",
+    "resolved_owner",
+    "resolved_crypto_impact",
+    "confidence"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "fact_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Reference to the scanner fact being analyzed (e.g. F0042)."
+    },
+    "chain": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Ordered links from decision_origin -> governance_mechanism -> enforcement_point -> call_site.",
+      "items": {
+        "$ref": "#/$defs/governance_link"
+      }
+    },
+    "resolved_owner": {
+      "$ref": "#/$defs/role"
+    },
+    "resolved_crypto_impact": {
+      "$ref": "#/$defs/crypto_impact"
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0
+    },
+    "flat_provenance": {
+      "$ref": "#/$defs/flat_provenance",
+      "description": "Optional backward-compatible flat label derived from or mapped to this chain."
+    }
+  },
+  "$defs": {
+    "role": {
+      "type": "string",
+      "enum": [
+        "language-runtime",
+        "os-platform",
+        "container-image",
+        "platform-team",
+        "framework",
+        "app-team",
+        "vendor",
+        "external-service"
+      ]
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "runtime-default",
+        "policy",
+        "framework",
+        "config-file",
+        "code",
+        "externalized",
+        "delegated",
+        "backend-swap"
+      ],
+      "description": "'backend-swap' = crypto backend replaced at build time (e.g. golang-fips replaces Go stdlib crypto with OpenSSL via CGo, or a builder image injects a different TLS library)."
+    },
+    "layer": {
+      "type": "string",
+      "enum": [
+        "L0-os",
+        "L1-container",
+        "L2-platform",
+        "L3-language",
+        "L4-external"
+      ]
+    },
+    "crypto_impact": {
+      "type": "string",
+      "enum": [
+        "strong",
+        "weak",
+        "deprecated",
+        "delegated",
+        "unknown",
+        "pqc-ready",
+        "pqc-blocked"
+      ],
+      "description": "General crypto posture at this link. 'strong'=current best practice, 'weak'=below recommended (e.g. TLS 1.0, SHA-1, RSA-1024), 'deprecated'=algorithm disallowed by standards, 'delegated'=posture depends on another layer, 'unknown'=insufficient evidence, 'pqc-ready'=post-quantum capable, 'pqc-blocked'=cannot support PQC. PQC values are used when the analysis context is PQC-specific."
+    },
+    "flat_provenance": {
+      "type": "string",
+      "enum": [
+        "vendored",
+        "inherited-constrained",
+        "delegated-dependency",
+        "provider-census",
+        "adoption-signal",
+        "native-candidate",
+        "externalized"
+      ]
+    },
+    "governance_link": {
+      "type": "object",
+      "required": [
+        "role",
+        "mechanism",
+        "type",
+        "layer",
+        "crypto_impact",
+        "evidence"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "role": {
+          "$ref": "#/$defs/role"
+        },
+        "mechanism": {
+          "type": "string",
+          "minLength": 1,
+          "description": "What governs at this link (e.g. platform TLS profile: Modern, Go 1.24 default CurvePreferences, nginx ssl_ecdh_curve)."
+        },
+        "type": {
+          "$ref": "#/$defs/type"
+        },
+        "layer": {
+          "$ref": "#/$defs/layer"
+        },
+        "crypto_impact": {
+          "$ref": "#/$defs/crypto_impact"
+        },
+        "evidence": {
+          "type": "string",
+          "minLength": 1,
+          "description": "fact_id or description of how this link was determined."
+        }
+      }
+    },
+    "flat_provenance_mapping": {
+      "description": "Maps pqc_facts.py flat provenance_hint() values to governance chain patterns. externalized is from pqc-readiness-decision-tree.json, not provenance_hint().",
+      "type": "object",
+      "properties": {
+        "vendored": {
+          "type": "object",
+          "properties": {
+            "description": {
+              "const": "Single-link chain; crypto decision owned by vendored third-party code."
+            },
+            "chain_pattern": {
+              "type": "object",
+              "properties": {
+                "typical_length": {
+                  "const": 1
+                },
+                "terminal_role": {
+                  "const": "vendor"
+                },
+                "terminal_type": {
+                  "const": "delegated"
+                }
+              }
+            },
+            "provenance_hint_rule": {
+              "const": "VENDOR_RX.match(path)"
+            },
+            "tls_control": {
+              "const": "vendor-controlled"
+            }
+          }
+        },
+        "inherited-constrained": {
+          "type": "object",
+          "properties": {
+            "description": {
+              "const": "Chain ending in policy or framework constraint that pins crypto parameters."
+            },
+            "chain_pattern": {
+              "type": "object",
+              "properties": {
+                "terminal_types": {
+                  "type": "array",
+                  "items": {
+                    "enum": [
+                      "policy",
+                      "framework",
+                      "config-file"
+                    ]
+                  }
+                },
+                "typical_roles": {
+                  "type": "array",
+                  "items": {
+                    "enum": [
+                      "platform-team",
+                      "os-platform",
+                      "framework"
+                    ]
+                  }
+                }
+              }
+            },
+            "provenance_hint_rule": {
+              "const": "rule_id.startswith(('HP_GROUPS_', 'HP_POLICY_', 'HP_ENV_'))"
+            },
+            "tls_control": {
+              "const": "infra-controlled"
+            }
+          }
+        },
+        "delegated-dependency": {
+          "type": "object",
+          "properties": {
+            "description": {
+              "const": "App delegates crypto/TLS to a dependency or framework library."
+            },
+            "chain_pattern": {
+              "type": "object",
+              "properties": {
+                "terminal_type": {
+                  "const": "delegated"
+                },
+                "terminal_roles": {
+                  "type": "array",
+                  "items": {
+                    "enum": [
+                      "framework",
+                      "vendor",
+                      "external-service"
+                    ]
+                  }
+                }
+              }
+            },
+            "provenance_hint_rule": {
+              "const": "rule_id.startswith(('DEP_', 'HP_FW_', 'JWT_LIB'))"
+            },
+            "tls_control": {
+              "const": "vendor-controlled"
+            }
+          }
+        },
+        "provider-census": {
+          "type": "object",
+          "properties": {
+            "description": {
+              "const": "PQC readiness determined by shipped crypto provider (OS/container), not app code."
+            },
+            "chain_pattern": {
+              "type": "object",
+              "properties": {
+                "origin_roles": {
+                  "type": "array",
+                  "items": {
+                    "enum": [
+                      "container-image",
+                      "os-platform"
+                    ]
+                  }
+                },
+                "typical_layers": {
+                  "type": "array",
+                  "items": {
+                    "enum": [
+                      "L0-os",
+                      "L1-container"
+                    ]
+                  }
+                }
+              }
+            },
+            "provenance_hint_rule": {
+              "const": "rule_id.startswith(('HP_CHAIN_',))"
+            },
+            "tls_control": {
+              "const": "infra-controlled"
+            }
+          }
+        },
+        "adoption-signal": {
+          "type": "object",
+          "properties": {
+            "description": {
+              "const": "Explicit PQC adoption signal in app-controlled code or config."
+            },
+            "chain_pattern": {
+              "type": "object",
+              "properties": {
+                "terminal_role": {
+                  "const": "app-team"
+                },
+                "terminal_crypto_impact": {
+                  "const": "pqc-ready"
+                }
+              }
+            },
+            "provenance_hint_rule": {
+              "const": "rule_id.startswith(('HP_PQC_',))"
+            },
+            "tls_control": {
+              "const": "app-controlled"
+            }
+          }
+        },
+        "native-candidate": {
+          "type": "object",
+          "properties": {
+            "description": {
+              "const": "First-party code directly configures crypto APIs."
+            },
+            "chain_pattern": {
+              "type": "object",
+              "properties": {
+                "terminal_role": {
+                  "const": "app-team"
+                },
+                "terminal_type": {
+                  "const": "code"
+                }
+              }
+            },
+            "provenance_hint_rule": {
+              "const": "default (no other provenance_hint rule matched)"
+            },
+            "tls_control": {
+              "const": "app-controlled"
+            }
+          }
+        },
+        "externalized": {
+          "type": "object",
+          "properties": {
+            "description": {
+              "const": "TLS terminated or enforced outside app code (service mesh, sidecar, ingress)."
+            },
+            "chain_pattern": {
+              "type": "object",
+              "properties": {
+                "terminal_type": {
+                  "const": "externalized"
+                },
+                "terminal_roles": {
+                  "type": "array",
+                  "items": {
+                    "enum": [
+                      "platform-team",
+                      "external-service"
+                    ]
+                  }
+                },
+                "typical_layers": {
+                  "type": "array",
+                  "items": {
+                    "const": "L2-platform"
+                  }
+                }
+              }
+            },
+            "provenance_hint_rule": {
+              "const": "decision-tree: zero crypto facts AND portfolio graph shows sidecar/route TLS termination"
+            },
+            "tls_control": {
+              "const": "infra-controlled"
+            }
+          }
+        }
+      }
+    },
+    "examples": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "$ref": "#/$defs/governance_link"
+      },
+      "default": [
+        {
+          "fact_id": "F0101",
+          "chain": [
+            {
+              "role": "platform-team",
+              "mechanism": "APIServer.spec.tlsSecurityProfile: Modern",
+              "type": "policy",
+              "layer": "L2-platform",
+              "crypto_impact": "strong",
+              "evidence": "HP_POLICY_TLS_SECURITY_PROFILE"
+            },
+            {
+              "role": "framework",
+              "mechanism": "library-go/crypto/securetls.SecureTLSConfig()",
+              "type": "framework",
+              "layer": "L3-language",
+              "crypto_impact": "delegated",
+              "evidence": "HP_FW_LIBRARY_GO"
+            },
+            {
+              "role": "app-team",
+              "mechanism": "tls.Config{} passed to SecureTLSConfig",
+              "type": "code",
+              "layer": "L3-language",
+              "crypto_impact": "delegated",
+              "evidence": "HP_GROUPS_GO_CURVEPREFERENCES at operator/main.go:142"
+            }
+          ],
+          "resolved_owner": "platform-team",
+          "resolved_crypto_impact": "strong",
+          "confidence": 0.85,
+          "flat_provenance": "delegated-dependency"
+        },
+        {
+          "fact_id": "F0202",
+          "chain": [
+            {
+              "role": "app-team",
+              "mechanism": "application.yml: server.ssl.enabled + server.ssl.ciphers pinned to AES-128-GCM only",
+              "type": "config-file",
+              "layer": "L3-language",
+              "crypto_impact": "weak",
+              "evidence": "HP_FW_SPRING_SECURITY + application.yml"
+            },
+            {
+              "role": "framework",
+              "mechanism": "Spring Boot embedded Tomcat auto-configures JSSE from server.ssl.*",
+              "type": "framework",
+              "layer": "L3-language",
+              "crypto_impact": "delegated",
+              "evidence": "HP_FW_SPRING_SECURITY"
+            }
+          ],
+          "resolved_owner": "app-team",
+          "resolved_crypto_impact": "weak",
+          "confidence": 0.75,
+          "flat_provenance": "delegated-dependency"
+        },
+        {
+          "fact_id": "F0303",
+          "chain": [
+            {
+              "role": "container-image",
+              "mechanism": "ubi9-minimal ships openssl-3.2.x",
+              "type": "runtime-default",
+              "layer": "L1-container",
+              "crypto_impact": "strong",
+              "evidence": "HP_CHAIN_BASE_IMAGE"
+            },
+            {
+              "role": "language-runtime",
+              "mechanism": "Python ssl module delegates to linked OpenSSL",
+              "type": "delegated",
+              "layer": "L3-language",
+              "crypto_impact": "delegated",
+              "evidence": "HP_CHAIN_PYTHON_OPENSSL (inferred)"
+            },
+            {
+              "role": "app-team",
+              "mechanism": "ssl.create_default_context()",
+              "type": "code",
+              "layer": "L3-language",
+              "crypto_impact": "delegated",
+              "evidence": "native-candidate at app/tls.py:28"
+            }
+          ],
+          "resolved_owner": "container-image",
+          "resolved_crypto_impact": "strong",
+          "confidence": 0.8,
+          "flat_provenance": "provider-census"
+        },
+        {
+          "fact_id": "F0404",
+          "chain": [
+            {
+              "role": "platform-team",
+              "mechanism": "Istio PeerAuthentication: STRICT mTLS",
+              "type": "policy",
+              "layer": "L2-platform",
+              "crypto_impact": "strong",
+              "evidence": "portfolio graph: istio-injection=enabled"
+            },
+            {
+              "role": "platform-team",
+              "mechanism": "Envoy sidecar terminates TLS on pod egress/ingress",
+              "type": "externalized",
+              "layer": "L2-platform",
+              "crypto_impact": "delegated",
+              "evidence": "decision-tree externalized rule"
+            }
+          ],
+          "resolved_owner": "platform-team",
+          "resolved_crypto_impact": "strong",
+          "confidence": 0.7,
+          "flat_provenance": "externalized"
+        },
+        {
+          "fact_id": "F0505",
+          "chain": [
+            {
+              "role": "os-platform",
+              "mechanism": "update-crypto-policies --set DEFAULT (RHEL 10.1)",
+              "type": "policy",
+              "layer": "L0-os",
+              "crypto_impact": "strong",
+              "evidence": "HP_POLICY_CRYPTO_POLICIES + base-image->policy table"
+            },
+            {
+              "role": "container-image",
+              "mechanism": "ubi10 inherits /etc/crypto-policies via bind-mount",
+              "type": "runtime-default",
+              "layer": "L1-container",
+              "crypto_impact": "strong",
+              "evidence": "HP_CHAIN_BASE_IMAGE"
+            },
+            {
+              "role": "language-runtime",
+              "mechanism": "OpenSSL loads system crypto-policy config",
+              "type": "delegated",
+              "layer": "L0-os",
+              "crypto_impact": "delegated",
+              "evidence": "HP_CHAIN_RPM_NEVRA openssl"
+            }
+          ],
+          "resolved_owner": "os-platform",
+          "resolved_crypto_impact": "strong",
+          "confidence": 0.9,
+          "flat_provenance": "inherited-constrained"
+        }
+      ]
+    }
+  }
+}

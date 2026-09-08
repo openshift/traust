@@ -1,0 +1,29 @@
+id: openssl
+kind: library
+display_name: OpenSSL
+in_plain_english: >
+  OpenSSL 3.5 and later negotiate post-quantum TLS by default with X25519MLKEM768.
+  NIST-curve hybrids are available but must be turned on explicitly.
+quantum_tls:
+  by_default:
+    floors: { "*": "3.5" }
+    name: "X25519MLKEM768"
+  if_configured:
+    floors: { "*": "3.5" }
+    names: ["SecP256r1MLKEM768", "SecP384r1MLKEM1024"]
+  fips_preferred:
+    floors: { "*": "3.5" }
+    names: ["SecP256r1MLKEM768", "SecP384r1MLKEM1024"]
+turn_off: []
+unsupported: []
+details:
+  depends_on: null
+  fips_note: >
+    OpenSSL FIPS provider certification for PQC is separate from the base
+    module cert — check whether the specific FIPS provider build includes
+    ML-KEM in its validated algorithm list. Under RHEL FIPS crypto-policies,
+    X25519MLKEM768 is excluded from the FIPS group list; use SecP256r1MLKEM768
+    or SecP384r1MLKEM1024 for FIPS compliance.
+  policy_modes: null
+  sources:
+    - "https://www.openssl.org/news/openssl-3.5-notes.html"

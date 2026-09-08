@@ -1,0 +1,14 @@
+# remediate-finding settings ($TRAUST_CONFIG_HOME/remediation.yaml).
+# Copy this file to your config home as remediation.yaml and fill it in.
+#
+# fork_org: the GitHub organisation that hosts your PRIVATE mirrors of audited
+#   repositories. Locked down: org admins only, members cannot create repos, so
+#   ensure_fork.sh uses the /orgs/{org}/repos endpoint. There is no shipped
+#   default — the flow refuses to run until this is set (or HARNESS_FORK_ORG is
+#   exported).
+# naming_prefix: prefix on per-product index repos (<prefix>-<product>-index),
+#   the control repo (<prefix>-control), fix branches (<prefix>/<id>/<slug>) and
+#   commit subjects. Change it only before the first batch; existing artefacts
+#   keep the prefix they were created with.
+fork_org: example-org
+naming_prefix: traust

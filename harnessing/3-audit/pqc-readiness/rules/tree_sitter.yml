@@ -1,0 +1,153 @@
+- id: TS_JWT_RSA_ALGS
+  kind: tree_sitter
+  category: JWT
+  severity: high
+  risk: quantum-vulnerable
+  confidence: 0.72
+  migration_hint: Migrate JWT signing to ML-DSA or hybrid signatures.
+  pattern: "(?i)\\b(RS256|RS384|RS512|PS256|PS384|PS512)\\b"
+  scope: "java,javascript,typescript,python,go,rust,ruby"
+  description: RSA-family JWT signing algorithms detected in AST nodes.
+
+- id: TS_JWT_ES_ALG
+  kind: tree_sitter
+  category: JWT
+  severity: medium
+  risk: quantum-uncertain
+  confidence: 0.60
+  migration_hint: Define a PQC migration plan for ES-family algorithms.
+  pattern: "(?i)\\b(ES256|ES384|ES512)\\b"
+  scope: "java,javascript,typescript,python,go,rust,ruby"
+  description: ES-family JWT signing algorithms detected in AST nodes.
+
+- id: TS_JAVA_RSA_API
+  kind: tree_sitter
+  category: CryptoAPI
+  severity: high
+  risk: quantum-vulnerable
+  confidence: 0.68
+  migration_hint: Replace Java RSA API usage with PQC-capable libraries.
+  pattern: "(KeyPairGenerator|KeyFactory|Cipher|Signature)\\s*\\.\\s*getInstance\\s*\\(\\s*\"(RSA|RSA/[^\"\\s]*|SHA(1|224|256|384|512)withRSA|RSASSA-PSS)"
+  scope: "java"
+  description: RSA-related API symbols detected from Java AST.
+
+- id: TS_GO_RSA_USAGE
+  kind: tree_sitter
+  category: CryptoAPI
+  severity: medium
+  risk: quantum-vulnerable
+  confidence: 0.62
+  migration_hint: Migrate Go crypto/rsa usage to a PQC-hybrid design.
+  pattern: "(?i)(\\bcrypto/rsa\\b|\\brsa\\.(SignPKCS1v15|VerifyPKCS1v15|DecryptOAEP|EncryptOAEP|GenerateKey)\\b|\\b(Sign|Verify)(PKCS1v15|PSS)\\b)"
+  scope: go
+  description: RSA-related usage detected from Go AST.
+
+- id: TS_NODE_RSA_USAGE
+  kind: tree_sitter
+  category: CryptoAPI
+  severity: medium
+  risk: quantum-vulnerable
+  confidence: 0.59
+  migration_hint: Migrate Node.js RSA signing/verification logic to a PQC-ready design.
+  pattern: "(?i)(\\b(createSign|createVerify)\\s*\\(\\s*['\"]RSA|\\b(privateEncrypt|publicDecrypt)\\s*\\(|\\b(RS|PS)(256|384|512)\\b)"
+  scope: "javascript,typescript"
+  description: RSA-related API symbols detected from JavaScript/TypeScript AST.
+
+- id: TS_NODE_JOSE_USAGE
+  kind: tree_sitter
+  category: JWT
+  severity: medium
+  risk: quantum-uncertain
+  confidence: 0.55
+  migration_hint: Evaluate PQC-capable options in JOSE/JWT implementations.
+  pattern: "(?i)(\\bjwt\\.(sign|verify)\\b|\\bjsonwebtoken\\.(sign|verify)\\b|\\bjose\\.jwtVerify\\b|\\bSignJWT\\b)"
+  scope: "javascript,typescript"
+  description: JOSE/JWT calls detected from JavaScript/TypeScript AST.
+
+- id: TS_PY_RSA_USAGE
+  kind: tree_sitter
+  category: CryptoAPI
+  severity: medium
+  risk: quantum-vulnerable
+  confidence: 0.58
+  migration_hint: Inventory Python RSA API usage as PQC migration targets.
+  pattern: "(?i)(cryptography\\.hazmat\\.primitives\\.asymmetric\\.rsa|Crypto\\.PublicKey\\.RSA|\\brsa\\.(generate_private_key|RSAPrivateKey|RSAPublicKey)\\b|PKCS1v15|PSS)"
+  scope: python
+  description: RSA-related usage detected from Python AST.
+
+- id: TS_RUST_RSA_USAGE
+  kind: tree_sitter
+  category: CryptoAPI
+  severity: medium
+  risk: quantum-vulnerable
+  confidence: 0.60
+  migration_hint: Replace Rust RSA APIs with PQC-ready or hybrid alternatives.
+  pattern: "(?i)(\\bopenssl::rsa::Rsa\\b|\\brsa::(RsaPrivateKey|RsaPublicKey|Pkcs1v15Sign|Oaep|Pss)\\b|\\bring::signature::RSA_[A-Z0-9_]+\\b|\\bAlgorithm::RS(256|384|512)\\b|\\bRS(256|384|512)\\b|\\bTLS_[A-Z0-9_]*_RSA_[A-Z0-9_]*\\b)"
+  scope: rust
+  description: RSA-related crypto symbols detected from Rust AST.
+
+- id: TS_RUBY_RSA_USAGE
+  kind: tree_sitter
+  category: CryptoAPI
+  severity: medium
+  risk: quantum-vulnerable
+  confidence: 0.58
+  migration_hint: Replace Ruby OpenSSL RSA usage with PQC-ready migration targets.
+  pattern: "(?i)(\\bOpenSSL::PKey::RSA\\b|\\bOpenSSL::PKey::RSA\\.new\\b|\\bJWT\\.(encode|decode)\\b|\\bRS(256|384|512)\\b)"
+  scope: ruby
+  description: RSA-related crypto symbols detected from Ruby AST.
+
+- id: TS_SSH_RSA_STRING
+  kind: tree_sitter
+  category: SSH
+  severity: high
+  risk: quantum-vulnerable
+  confidence: 0.70
+  migration_hint: Plan phased retirement of ssh-rsa with hybrid key operations.
+  pattern: "(?i)ssh-rsa|rsa-sha2-(256|512)"
+  scope: "java,javascript,typescript,python,go,rust,ruby"
+  description: SSH RSA-family algorithm strings detected in AST nodes.
+
+- id: TS_TLS_RSA_CIPHER_LITERAL
+  kind: tree_sitter
+  category: TLS
+  severity: high
+  risk: quantum-vulnerable
+  confidence: 0.66
+  migration_hint: Update TLS suites containing RSA key exchange to PQC-hybrid suites.
+  pattern: "(?i)TLS_[A-Z0-9_]*RSA[A-Z0-9_]*"
+  scope: "java,javascript,typescript,python,go,rust,ruby"
+  description: RSA-family TLS cipher suite literals detected in AST nodes.
+
+- id: TS_TLS_LEGACY_VERSION_LITERAL
+  kind: tree_sitter
+  category: TLS
+  severity: high
+  risk: non-quantum-risk
+  confidence: 0.75
+  migration_hint: Upgrade to TLS 1.2+ and include PQC-hybrid plans.
+  pattern: "(?i)(?:^|[^A-Za-z0-9])TLSv1(?:\\.0|\\.1)?(?:$|[^0-9.])|TLSv1_0|TLSv1_1"
+  scope: "java,javascript,typescript,python,go,rust,ruby"
+  description: Legacy TLS version literals detected in AST nodes.
+
+- id: TS_RSA_KEY_SIZE_LITERAL
+  kind: tree_sitter
+  category: PKI
+  severity: medium
+  risk: quantum-vulnerable
+  confidence: 0.57
+  migration_hint: Shift from key-length based planning to PQC signatures/key exchange.
+  pattern: "(?i)((rsa|key(size|length)?|modulus)[^\\n]{0,32}\\b(1024|2048|3072)\\b|\\b(1024|2048|3072)\\b[^\\n]{0,32}(rsa|key(size|length)?|modulus))"
+  scope: "java,javascript,typescript,python,go,rust,ruby"
+  description: Classical public-key size literals detected in AST nodes.
+
+- id: TS_CERT_SIGALG_LITERAL
+  kind: tree_sitter
+  category: PKI
+  severity: medium
+  risk: quantum-vulnerable
+  confidence: 0.55
+  migration_hint: Update certificate signature algorithms to PQC or hybrid schemes.
+  pattern: "(?i)(sha256WithRSAEncryption|sha384WithRSAEncryption|sha512WithRSAEncryption|ecdsa-with-SHA(256|384|512))"
+  scope: "java,javascript,typescript,python,go,rust,ruby"
+  description: Certificate signature algorithm literals detected in AST nodes.
