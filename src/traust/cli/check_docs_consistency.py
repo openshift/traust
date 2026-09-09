@@ -516,20 +516,26 @@ def coverage_failures(repo: Path = REPO) -> list[str]:
     skills = [d.name for d in skill_dirs(repo)]
     schemas = sorted(p.name for p in schema_dir().glob("*.json"))
     docs_md = sorted(p.name for p in (repo / "docs").glob("*.md"))
+    # The README's skill and schema inventories were split into docs/ on
+    # 2026-09-09; a mention in the README or in the relevant inventory page
+    # suffices (placement is editorial).
+    skill_pages = ("README.md", "docs/standalone-usage.md", "docs/campaign-workflow.md")
+    schema_pages = ("README.md", "docs/tooling-and-structure-files.md")
     for doc_rel, items, label, required in (
-        # README tables: a mention anywhere suffices (placement is editorial)
-        ("README.md", skills, "skill", None),
+        (skill_pages, skills, "skill", None),
         # docs/skills.md is the reference: each skill needs its own section
         ("docs/skills.md", skills, "skill", "## {item}"),
-        ("README.md", schemas, "schema", None),
+        (schema_pages, schemas, "schema", None),
         # every guide under docs/ must be reachable from the README —
         # an unlinked doc is invisible to harness users
         ("README.md", docs_md, "doc", None),
     ):
-        doc = repo / doc_rel
-        if not doc.is_file():
+        pages = (doc_rel,) if isinstance(doc_rel, str) else doc_rel
+        present = [repo / p for p in pages if (repo / p).is_file()]
+        if not present:
             continue
-        text = doc.read_text(encoding="utf-8")
+        text = "\n".join(p.read_text(encoding="utf-8") for p in present)
+        doc_rel = " / ".join(p.relative_to(repo).as_posix() for p in present)
         for item in items:
             needle = required.format(item=item) if required else item
             if needle not in text:
@@ -780,7 +786,13 @@ def phantom_skill_failures(repo: Path = REPO) -> list[str]:
     """A doc table row naming a skill absent from the tree, without saying so."""
     have = {d.name for d in skill_dirs(repo)}
     failures = []
-    for rel in ("README.md", "PROCESS.md", "docs/skills.md"):
+    for rel in (
+        "README.md",
+        "PROCESS.md",
+        "docs/skills.md",
+        "docs/standalone-usage.md",
+        "docs/campaign-workflow.md",
+    ):
         doc = repo / rel
         if not doc.is_file():
             continue
