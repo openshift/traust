@@ -130,5 +130,5 @@ An earlier revision of this skill claimed the scoreboard harvested
 (docs-verification 2026-07-31, wiring c5). When reporting scoreboard
 numbers, point spend questions at the spend dashboard; treat a
 >7-day-old spend dashboard as stale and rebuild via
-`/refresh-dashboards`. Real-time view and the full tracking chain:
-`traust-internal/docs/spend-tracking.md`.
+`/refresh-dashboards`. Real-time view and the full tracking chain live in your
+deployment's private configuration repository, if it keeps one.

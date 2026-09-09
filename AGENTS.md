@@ -74,8 +74,8 @@ The agent runs from a parent workspace with three sibling trees (the inputs inve
 deployment-specific file. The real corpus registry, product map, budget policy,
 safe-exec profiles, rule-pack allowlist, hardening weights, dist-git watch list,
 internal vocabulary and ledger signing key live in the directory named by
-**`TRAUST_CONFIG_HOME`** (default `~/.traust/config`; for this estate the
-`traust-internal` repo's `config/`, set by the orchestrator). `scripts/install_traust`
+**`TRAUST_CONFIG_HOME`** (default `~/.traust/config`; a deployment usually points it
+at its own private configuration repository, set by the orchestrator). `scripts/install_traust`
 creates that directory from the templates and is the documented starting point;
 `install_traust --doctor` checks it. Resolve every such file through
 `config_path("<name>")` from `traust.paths` (or

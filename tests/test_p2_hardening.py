@@ -80,7 +80,7 @@ def test_e2_no_authorization_header_in_curl_argv():
 # now lives in the internal extension repo (open-source-upstream-plan.md
 # Phase 4). The assertions travel with the scripts — keeping them here would
 # leave two tests permanently red, and deleting them would drop the coverage
-# silently. See traust-internal/tests/.
+# silently. They live in the private extension repo's test suite.
 
 
 def test_e9_pqc_build_dir():
@@ -115,7 +115,7 @@ def test_d2_d6_allowlists_present():
     # validate-operator-live and validate-core-ocp assert in the internal
     # extension repo's copy of this test — see Phase 4 of the upstream plan.
     # deploy-operator asserts in the internal extension repo's copy since its
-    # 2026-09-07 move (traust-internal/tests/test_deploy_operator_hardening.py).
+    # 2026-09-07 move to that repo's test_deploy_operator_hardening.py.
     for skill in ("track-findings", "validate-findings", "fleet-fix"):
         s = (skill_dir(skill) / "SKILL.md").read_text()
         assert "allowed-tools:" in s.split("---")[1], skill
