@@ -38,8 +38,8 @@ dev = ["ruff>=0.6", "pytest-xdist>=3"]
 
 [tool.uv.sources]
 traust-contracts = { git = "https://github.com/openshift/traust-contracts.git", rev = "04840f0ff852df59e1e83ac4a392b6d05a1f2ff6" }
-traust-engine = { git = "https://github.com/openshift/traust-engine.git", rev = "205274ba01d50d9adbadd753fea0a6273dd859e2" }
-traust-ledger = { git = "https://github.com/openshift/traust-ledger.git", rev = "ba503335f12bfa7a95d4af8c4224b9b0719291ca" }
+traust-engine = { git = "https://github.com/openshift/traust-engine.git", rev = "38cedef797a142f9b09def88330b92cf5422a987" }
+traust-ledger = { git = "https://github.com/openshift/traust-ledger.git", rev = "0f4553f21f6ad20e551cf4457927c957acc927ae" }
 
 # Multi-skill CLIs live under src/traust/; harnessing/<skill>/ for single-skill
 # scripts. Install for deps + importable path helpers.
