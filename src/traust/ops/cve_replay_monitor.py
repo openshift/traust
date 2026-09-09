@@ -236,7 +236,7 @@ def osv_identity(repo_url):
     GitHub repos map to their Go module identity
     (github.com/<org>/<name>) — the dominant portfolio ecosystem and the
     same identity convention run_fork_advisory_lag.py queries OSV with.
-    Non-GitHub hosts (gitlab.cee etc.) have no public OSV surface and
+    Non-GitHub hosts (self-hosted GitLab etc.) have no public OSV surface and
     are skipped, exactly as the 0a backfill skipped them.
     """
     if not repo_url:
