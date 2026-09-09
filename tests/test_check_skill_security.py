@@ -319,7 +319,7 @@ class TestStageDepthExemptionMatching:
 
     # Injects its own key rather than borrowing a live one. These tests
     # previously used the validate-operator-live S6 exemption as a fixture and
-    # broke the moment that skill moved to traust-internal and the entry was
+    # broke the moment that skill moved to the private extension repo and the entry was
     # pruned — a mechanism test should not depend on which exemptions happen
     # to exist today.
     KEY = ("S6", "harnessing/fixture-skill/run_one.sh")
@@ -354,8 +354,8 @@ def test_no_stale_exemptions():
 
     A stale entry reads as a reviewed decision that still applies while
     silently protecting nothing. Five were found the first time this ran: a
-    fuzz harness that moved to the corpus, two skills that moved to
-    traust-internal, a path in a sibling repo this checker never scans, and one
+    fuzz harness that moved to the corpus, two skills that moved to the
+    private extension repo, a path in a sibling repo this checker never scans, and one
     whose underlying issue had simply been fixed. The only prior signal was a
     count of matched FILES, which drifts for unrelated reasons.
     """

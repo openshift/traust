@@ -50,5 +50,6 @@ harnessing/pqc-readiness/scripts/
 
 # mine-ledger rule-drafts are generated output (emit_rule_drafts.py default
 # --out-dir); they carry per-finding provenance and regenerate from the ledger,
-# so they are never committed. Estate copies live in the private traust-internal.
+# so they are never committed. Deployments keep their copies in their private
+# configuration repository.
 harnessing/mine-ledger/rule-drafts/

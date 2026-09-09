@@ -79,7 +79,6 @@ SIBLING_PREFIXES = (
     "contracts/",
     "traust-ledger/",
     "schema/",
-    "traust-internal/",
 )
 GLOB_CHARS = set("*?<>{}|")
 
