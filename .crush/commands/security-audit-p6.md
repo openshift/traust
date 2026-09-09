@@ -1,0 +1,1 @@
+../../.claude/commands/security-audit-p6.md

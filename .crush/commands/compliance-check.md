@@ -1,0 +1,1 @@
+../../.claude/commands/compliance-check.md

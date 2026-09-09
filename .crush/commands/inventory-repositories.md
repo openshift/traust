@@ -1,0 +1,1 @@
+../../.claude/commands/inventory-repositories.md

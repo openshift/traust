@@ -1,0 +1,1 @@
+../../.claude/commands/pqc-readiness.md

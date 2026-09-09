@@ -1,0 +1,1 @@
+../../.claude/commands/generate-team-report.md

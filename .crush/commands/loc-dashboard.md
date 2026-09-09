@@ -1,0 +1,1 @@
+../../.claude/commands/loc-dashboard.md

@@ -1,0 +1,1 @@
+../../.claude/commands/check-skill-security.md

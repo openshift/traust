@@ -1,0 +1,1 @@
+../../.claude/commands/dependency-watch.md

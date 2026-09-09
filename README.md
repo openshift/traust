@@ -228,7 +228,6 @@ workspace/                              # Run the agent from here
 | [docs/safe-exec.md](docs/safe-exec.md) | The target-build sandbox: profiles, env scrubbing, modes/bypass, gate rule S10 |
 | [docs/reachability.md](docs/reachability.md) | **Reachability** — every engine (govulncheck, Joern Java/C tiers, ELF scans, taint enumerator), the evidence ladder and its soundness rules, consumers, and guardrails; pending build-out lives in `progress-tracker/plans/reachability-integration-plan.md` |
 | [PROCESS.md](PROCESS.md) | End-to-end 9-stage campaign workflow |
-| [CHANGELOG.md](CHANGELOG.md) | Release history |
 
 ## Tooling / Structure Files
 

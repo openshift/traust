@@ -1,0 +1,1 @@
+../../.claude/commands/validate-browser-finding.md
