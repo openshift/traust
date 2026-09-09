@@ -12,6 +12,7 @@ Covers:
   - adapters: verdict logic for k8s, container, wasm
 """
 
+import base64
 import json
 import textwrap
 import threading
@@ -75,6 +76,13 @@ from scope import ClusterScope, Scope
 # ======================================================================
 # INGEST
 # ======================================================================
+
+
+# A base64-wrapped JWT-shaped header (what a leaked Secret carrying a token
+# looks like), built at runtime so no token-shaped literal sits in the tree.
+_B64_WRAPPED_JWT_HEADER = base64.b64encode(
+    base64.b64encode(json.dumps({"alg": "RS256", "kid": "test-key"}).encode())
+).decode()
 
 
 class TestExtractPocs:
@@ -1417,7 +1425,7 @@ class TestK8sVerdict:
             K8sAdapter._verdict(
                 "raw",
                 0,
-                "data:\n  token: ZXlKaGJHY2lPaUpTVXpJMU5pSXNJbXRwWkNJNkltZHNZWE56ZDJsdVp5ST0=",
+                "data:\n  token: " + _B64_WRAPPED_JWT_HEADER,
                 "Any principal with read access → harvest hub kubeconfig token",
             )
             == "confirmed"
