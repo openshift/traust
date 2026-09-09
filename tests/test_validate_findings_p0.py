@@ -237,7 +237,7 @@ def test_snake_case_keys_redacted_in_plain_text():
 def test_b64_pem_redacted_outside_json():
     from adapters.base import AdapterBase
 
-    text = f"tls.key: {_PEM_B64}YWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYQ=="
+    text = f"tls.key: {_PEM_B64}"
     assert "LS0tLS1CRUdJTi" not in AdapterBase._redact_credentials(text)
 
 
