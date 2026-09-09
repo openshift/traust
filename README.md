@@ -1,10 +1,10 @@
 # Traust
 
-Traust is an agent harness for automated, multi-framework security assessment of software portfolios: source repositories, container images, RPM packages, Kubernetes operators, infrastructure-as-code and the services built from them. This repository holds the skills, slash commands, schemas and prompt engineering that let an AI coding agent run consistent, repeatable audits, triage and validate what it finds, record every disposition in a signed ledger, and drive remediation — at the scale of hundreds of repositories rather than one review at a time. Traust was developed by Red Hat's Hybrid Platforms security team and is published under the Apache License 2.0.
+Traust is a workflow engine for automated, multi-framework security assessment of software portfolios: source repositories, container images, RPM packages, Kubernetes operators, infrastructure-as-code and the services built from them. This repository holds the skills, slash commands, schemas and prompt engineering that let an AI coding agent run consistent, repeatable audits, triage and validate what it finds, record every disposition in a signed ledger, and drive remediation — at the scale of hundreds of repositories rather than one review at a time. Traust was developed by Red Hat's Hybrid Platforms security team and is published under the Apache License 2.0.
 
 ## Purpose
 
-Manual security review does not scale to hundreds of repositories across dozens of product releases. This harness equips AI coding agents with structured methodologies to perform consistent, repeatable security audits — applying industry-standard frameworks to every repository in the portfolio.
+Manual security review does not scale to hundreds of repositories across dozens of product releases. This workflow engine equips AI coding agents with structured methodologies to perform consistent, repeatable security audits — applying industry-standard frameworks to every repository in the portfolio.
 
 The harness is designed to be agent-agnostic in principle, with current implementations targeting Claude Code and Crush (via shared skills and slash commands).
 
@@ -39,7 +39,7 @@ Which repo to change for a given fix, how the git-tag pinning works (and the
 `uv lock` "conflicting URLs" failure it produces when pins disagree), and the
 bottom-up release order are all in **[docs/components.md](docs/components.md)**.
 
-## How to Use this Harness
+## How to Use this workflow engine
 
 **Start here:** `scripts/install_traust` sets up `TRAUST_CONFIG_HOME` (the directory
 holding your operational configuration, created from the `config/*.example.*`
@@ -73,21 +73,21 @@ Note: if you just want an index of all skills in this repository, ask your agent
 
 ### Standalone Usage
 
-For those wanting to use the harness **locally**...
+For those wanting to use Traust **locally**...
 
 "Standalone" mode refers to using any of these skills independently outside of an automated workflow. 
 #### Standalone Skills
 
 These skills work against any codebase or report files you supply _outside of the full workflow_ with minimal coaxing. The expected inputs are always listed in the "Inputs" column, but if you want all of the options, see [docs/skills.md](docs/skills.md).
 
-Skills marked with Environment or Infrastructure requirements need access to services your organisation runs; the harness names the kind of service, your deployment supplies the instance. Typical setup:
+Skills marked with Environment or Infrastructure requirements need access to services your organisation runs; the workflow engine names the kind of service, your deployment supplies the instance. Typical setup:
 * **Employee directory** - the optional `LEDGER_DIRECTORY_COMMAND` cross-check; SSO/VPN as your directory requires
 * **Jira** - MCP or CLI with access to target projects required
 * **Ephemeral OCP Cluster** - any short-lived OCP cluster; if your organization runs an on-demand cluster service, that is the simplest route
 * **Playwright** - the playwright MCP server and package installed and configured for web-driving support
 * **Google Workspace** - the gws CLI, these skills use the Google Workspace API to modify Google Docs or Drive
 
-Skills with no infrastructure requirement need only the harness and a target codebase.
+Skills with no infrastructure requirement need only the workflow engine and a target codebase.
 
 | Skill | Stage | What It Does | Inputs | Environment & Infrastructure Requirements | Minimum Viable Model |
 |-------|-------|--------------|--------|----------------|-----------|
@@ -126,10 +126,8 @@ For those interested in how the **campaign** works...
 
 The campaign workflow uses the above skills, plus a few additional campaign-specific skills, and works against a few fixed and private (due to data sensitivity) repositories that enable an automated data-flow from inventory through scanning to remediation.  These helper repositories are:
 
-* **Inventory Repository** - this forms the _inputs_ to the security scan.  For operators of the campaign, this is the *-inputs repository(ies). This contains a structured inventory of all repositories in active projects/products to scan.  
-* **Harness** - this repository!  This contains all of the skills used throughout the campaign stages
-* **\*.results** - this repository(ies) contain the raw security scanning results and validation pass results
-* **progress-tracker** - this repository holds the control files necessary to coordinate the campaign across agents and also holds processed scans and distribution list mappings for the distribution of findings.
+* **Inventory Repository** - this forms the _inputs_ to the security scan.  For operators of a campaign, this is the *-inputs repository(ies). This contains a structured inventory of all repositories in active projects/products to scan.  
+* **Traust Workflow Engine** - this repository!  This contains all of the skills used throughout the campaign stages
 
 #### Campaign-bound skills
 
