@@ -1,6 +1,9 @@
-"""Tests for the integrity P0 fixes (self-audit -001/-002/-004):
-salted fail-closed FP audit valve, path confinement, and the
-authenticated-bind countersigner verification."""
+"""Tests for the integrity P0 fixes (self-audit -001/-002):
+salted fail-closed FP audit valve and path confinement.
+
+Countersigner identity is now verified from the signer's OIDC token by
+the SDK (LedgerService.whoami); the old LDAP authenticated-bind path and
+its tests were retired with the ledger→SDK migration (MR-2)."""
 
 import unittest
 from pathlib import Path

@@ -281,14 +281,11 @@ class TestVerifyMerkleIntegrity(unittest.TestCase):
 
 class TestWritePathMerkleStamp(unittest.TestCase):
     def test_countersign_append_produces_valid_merkle(self):
-        from traust.cli.countersign import build_human_event
+        from traust_contracts.v1.models.layer import LayerActor
+        from traust_ledger._internal.events.builders import build_human_event
 
         layer = _layer([_event(F1, validity="false_positive")])
-        actor = {
-            "kind": "human",
-            "identity": "jdoe@example.com",
-            "ldap_verified": True,
-        }
+        actor = LayerActor(kind="human", identity="jdoe@example.com", ldap_verified=True)
         layer["events"].append(
             build_human_event(
                 F1,
@@ -296,7 +293,7 @@ class TestWritePathMerkleStamp(unittest.TestCase):
                 "Reviewed and agree with the machine refutation.",
                 actor,
                 "2026-07-03T10:00:00+00:00",
-            )
+            ).to_dict()
         )
         stamp_layer(layer)
         self.assertEqual(verify_merkle_integrity(layer), [])

@@ -249,7 +249,7 @@ Review and sign off pending human decisions in the findings disposition ledger �
 
 - **Stage:** ④ Triage
 - **Tier:** `primary`
-- **Invoke:** `/countersign` — arguments: `[<findings-root>|<product>/<repo>] [--identity <token-holder>]`
+- **Invoke:** `/countersign` — arguments: `[<findings-root>|<product>/<repo>]`
 - **Skill:** [harnessing/4-triage/countersign/SKILL.md](../harnessing/4-triage/countersign/SKILL.md)
 - **Produces / consumes:** [Integrations](../harnessing/4-triage/countersign/SKILL.md#integrations)
 

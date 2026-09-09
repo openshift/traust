@@ -63,10 +63,9 @@ Usage:
       (defaults to configured findings tree from $TRAUST_CONFIG_HOME/locations.yaml)
   traust countersign queue --root <analysis-results>/findings --out countersign-queue.md
   traust countersign queue --repo-dir <findings>/<prod>/<repo>
-  python3 -m traust.cli.countersign apply countersign-queue.md --identity <you>
+  python3 -m traust.cli.countersign apply countersign-queue.md
   python3 -m traust.cli.countersign record --layer <repo>-findings-layer.json \\
-      --finding REPO-abc1234-010 --decision false_positive \\
-      --identity <you> [--rationale "..."]
+      --finding REPO-abc1234-010 --decision false_positive [--rationale "..."]
 """
 
 import argparse
@@ -78,10 +77,10 @@ import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
+from traust_contracts.v1.models.layer import LayerActor
 from traust_engine.ledger import (
     LedgerError,
     LedgerService,
-    compute_event_id,
 )
 
 # --- track-findings import (hardened) --------------------------------------
@@ -713,7 +712,7 @@ def cmd_queue(args) -> int:
         "",
         "Mark ONE box per card ([x]), add a rationale where required, then:",
         "",
-        "    traust admin countersign apply countersign-queue.md --identity <kerberos-id>",
+        "    traust admin countersign apply countersign-queue.md",
         "",
         "Signing records a false positive attributed to you; `keep_open` "
         "records a human `confirmed` (your rationale required); `defer` "
@@ -794,8 +793,8 @@ LOCAL_PROVIDER = "local"
 ALLOW_LOCAL_ENV = "HARNESS_COUNTERSIGN_ALLOW_LOCAL"
 
 
-def resolve_actor(identity: str | None = None) -> dict:
-    """The signer, as the ledger identity token proves them.
+def resolve_actor() -> dict:
+    """The signer, as the ledger identity token proves them (``whoami``).
 
     Until 2026-09-08 this CLI ran its own LDAP check (a corporate script)
     and wrote the resulting actor into the layer file directly, bypassing the
@@ -805,16 +804,15 @@ def resolve_actor(identity: str | None = None) -> dict:
     authority: ``require_verified_actor`` resolves the token (LAAS_TOKEN,
     LEDGER_TOKEN_PATH, LEDGER_TOKEN, the credential ``ledger auth login``
     stored, or a local token when LEDGER_LOCAL_IDENTITY is set) and
-    cryptographically verifies it. ``submit_events`` re-derives the same actor
-    from the same token and stamps it on every event; the dict returned here
-    is for receipts and the optional ``--identity`` sanity check only.
+    cryptographically verifies it. The ``countersign`` verb re-derives the
+    same actor from the same token and stamps it on every event; the dict
+    returned here is for the receipt only.
 
     Raises RuntimeError when no verifiable token exists, the token is a
     machine identity, the deployment's employee directory
-    (``LEDGER_DIRECTORY_COMMAND``) does not report the holder ``active``,
+    (``LEDGER_DIRECTORY_COMMAND``) does not report the holder ``active``, or
     the token is self-minted (``identity_provider: local``) without
-    ``HARNESS_COUNTERSIGN_ALLOW_LOCAL=1``, or ``identity`` names someone
-    other than the token holder.
+    ``HARNESS_COUNTERSIGN_ALLOW_LOCAL=1``.
     """
     from traust_ledger.auth.directory import (
         DirectoryRefusedError,
@@ -854,63 +852,14 @@ def resolve_actor(identity: str | None = None) -> dict:
             "adopters without an OIDC provider). Otherwise run "
             "`ledger auth login`; recording refused"
         )
-    if identity:
-        want = identity.strip().lower()
-        have = {
-            (actor.identity or "").lower(),
-            (actor.identity_subject or "").lower(),
-            (actor.identity or "").lower().split("@")[0],
-        }
-        if want not in have:
-            raise RuntimeError(
-                f"--identity {identity!r} does not match the ledger token "
-                f"holder {actor.identity!r} — recording refused"
-            )
     return actor.to_dict()
 
 
-def build_human_event(
-    finding_ref: str, decision: str, rationale: str, actor: dict, recorded_at: str
-) -> dict:
-    validity = (
-        "false_positive"
-        if decision in ("false_positive", "override_false_positive")
-        else "confirmed"
-    )
-    # Signer identity is part of the ref: without it, two independent
-    # humans recording the same decision on the same finding on the
-    # SAME DAY collided to one event_id and the second was dropped as a
-    # duplicate — silently defeating the two-person rule
-    # (assessment 2026-07-31, docs-review #5). Same signer + same day
-    # still dedupes, which is the intended idempotency.
-    source_ref = f"interactive:{recorded_at[:10]}:{actor.get('identity', 'unknown')}"
-    return {
-        "event_id": compute_event_id(source_ref, finding_ref, validity, None),
-        "finding_ref": finding_ref,
-        "recorded_at": recorded_at,
-        "occurred_at": recorded_at,
-        "source": {"type": "interactive", "ref": source_ref, "actor": actor},
-        "disposition": {"validity": validity},
-        "rationale": rationale,
-    }
-
-
-def build_severity_event(
-    finding_ref: str, level: str, rationale: str, actor: dict, recorded_at: str
-) -> dict:
-    """Human severity override. The level is encoded in source.ref so the
-    canonical event_id formula (source.ref|finding|validity|resolution)
-    stays unchanged and stays idempotent per signer-day-and-level."""
-    source_ref = f"interactive:{recorded_at[:10]}:severity:{level}"
-    return {
-        "event_id": compute_event_id(source_ref, finding_ref, None, None),
-        "finding_ref": finding_ref,
-        "recorded_at": recorded_at,
-        "occurred_at": recorded_at,
-        "source": {"type": "interactive", "ref": source_ref, "actor": actor},
-        "disposition": {"severity": level},
-        "rationale": rationale,
-    }
+# Event construction (canonical id, source.ref, disposition, per-signer-day
+# idempotency) now lives in the ledger SDK's `countersign` verb: it builds the
+# event, dedupes, runs the human-lane gates, stamps the token-verified actor,
+# finalizes the Merkle tree and signs — all in one atomic write. The harness no
+# longer assembles or appends ledger events itself.
 
 
 def default_fp_rationale(layer: dict, finding_ref: str) -> str:
@@ -985,6 +934,9 @@ def record_decisions(
     _confine_layer.
     """
     receipt = []
+    # resolve_actor() returns a dict for the harness's own use (receipts,
+    # alias attribution); the SDK countersign verb wants a LayerActor.
+    sdk_actor = LayerActor(**actor) if isinstance(actor, dict) else actor
     by_layer: dict[str, list[dict]] = {}
     for d in decisions:
         by_layer.setdefault(d["layer"], []).append(d)
@@ -996,12 +948,12 @@ def record_decisions(
             if engine is not None
             else LedgerService(data_dir=lp.parent)
         )
-        # Read-only view for dedup, alias state and default rationales. Every
-        # write below goes through the SDK (submit_events / patch_layer_file),
-        # which verifies the token, stamps the actor, finalizes and signs.
+        # Read-only view for alias state and default rationales. Every write
+        # below goes through the SDK (countersign / patch_layer_file), which
+        # verifies the token, builds and dedupes the event, runs the human-lane
+        # gates, stamps the actor, finalizes (Merkle) and signs atomically —
+        # the harness never assembles, appends, or signs layers itself.
         layer = json.loads(lp.read_text(encoding="utf-8"))
-        existing = {e["event_id"] for e in layer["events"]}
-        new_events: list[dict] = []
         aliases_changed = False
         for d in ds:
             if d["decision"] == "defer":
@@ -1060,33 +1012,38 @@ def record_decisions(
                         "required (there is no machine rationale to adopt)"
                     )
                 rationale = default_fp_rationale(layer, d["finding"])
-            if d["decision"].startswith("severity="):
-                level = d["decision"].split("=", 1)[1]
-                if level not in SEVERITY_LEVELS:
-                    raise ValueError(f"{d['finding']}: unknown severity level {level!r}")
-                ev = build_severity_event(d["finding"], level, rationale, actor, recorded_at)
-                if ev["event_id"] in existing:
+            try:
+                if d["decision"].startswith("severity="):
+                    level = d["decision"].split("=", 1)[1]
+                    if level not in SEVERITY_LEVELS:
+                        raise ValueError(f"{d['finding']}: unknown severity level {level!r}")
+                    ledger.countersign(
+                        lp,
+                        d["finding"],
+                        rationale=rationale,
+                        recorded_at=recorded_at,
+                        severity=level,
+                        actor=sdk_actor,
+                    )
                     receipt.append(
-                        f"  duplicate  {d['finding']} (severity="
-                        f"{level} already recorded today — "
-                        "skipped)"
+                        f"  severity   {d['finding']} → {level} (original "
+                        "severity preserved; effective_severity carries the override)"
                     )
                     continue
-                new_events.append(ev)
-                existing.add(ev["event_id"])
-                receipt.append(
-                    f"  severity   {d['finding']} → {level} "
-                    f"event {ev['event_id'][:12]}… (original "
-                    "severity preserved; effective_severity "
-                    "carries the override)"
+                # "reopen" is a harness alias for confirming a finding; the SDK
+                # only accepts keep_open/false_positive/override_false_positive.
+                decision = "keep_open" if d["decision"] == "reopen" else d["decision"]
+                ledger.countersign(
+                    lp,
+                    d["finding"],
+                    decision=decision,
+                    rationale=rationale,
+                    recorded_at=recorded_at,
+                    actor=sdk_actor,
                 )
+            except LedgerError as exc:
+                receipt.append(f"  rejected   {d['finding']} ({d['decision']}): {exc}")
                 continue
-            ev = build_human_event(d["finding"], d["decision"], rationale, actor, recorded_at)
-            if ev["event_id"] in existing:
-                receipt.append(f"  duplicate  {d['finding']} (already recorded today — skipped)")
-                continue
-            new_events.append(ev)
-            existing.add(ev["event_id"])
             suffix = ""
             if d["decision"] == "override_false_positive":
                 suffix = (
@@ -1096,20 +1053,13 @@ def record_decisions(
                 )
             elif d["decision"] == "reopen":
                 suffix = " — human confirmed; finding re-opened"
-            receipt.append(
-                f"  {d['decision']:<10} {d['finding']} event {ev['event_id'][:12]}…{suffix}"
-            )
+            receipt.append(f"  {d['decision']:<10} {d['finding']} recorded{suffix}")
         if aliases_changed:
             ledger.patch_layer_file(lp, {"finding_aliases": layer["metadata"]["finding_aliases"]})
-        if new_events:
-            # The SDK overwrites source.actor with the token-verified actor,
-            # dedups by event_id, enforces the identity rule, then finalizes
-            # (Merkle) and signs inside one lock.
-            ledger.submit_events(lp, new_events)
-        if aliases_changed or new_events:
-            # On-disk state now carries the stamped actors; everything
-            # downstream (queue close, cumulative rebuild) reads that.
-            layer = json.loads(lp.read_text(encoding="utf-8"))
+        # Re-read the on-disk layer the SDK just wrote (stamped actors, signed
+        # Merkle root); everything downstream (queue close, cumulative rebuild)
+        # reads exactly what was signed.
+        layer = json.loads(lp.read_text(encoding="utf-8"))
 
         # Close the queue entries these decisions answer. Until 2026-08-25
         # nothing did: the event was appended and the needs_review item stayed
@@ -1193,7 +1143,7 @@ def cmd_apply(args) -> int:
         print("No marked decisions found in the queue file.", file=sys.stderr)
         return 1
     try:
-        actor = resolve_actor(args.identity)
+        actor = resolve_actor()
     except (RuntimeError, OSError) as e:
         print(f"ERROR: {e}", file=sys.stderr)
         return 1
@@ -1231,7 +1181,7 @@ def cmd_record(args) -> int:
             return 2
         decision = f"severity={args.severity}"
     try:
-        actor = resolve_actor(args.identity)
+        actor = resolve_actor()
     except (RuntimeError, OSError) as e:
         print(f"ERROR: {e}", file=sys.stderr)
         return 1
@@ -1281,10 +1231,6 @@ def main(argv=None) -> int:
 
     a = sub.add_parser("apply", help="record decisions from an annotated queue")
     a.add_argument("queue", help="annotated countersign-queue.md")
-    a.add_argument(
-        "--identity",
-        help="optional: must match the ledger token holder (the token is the identity)",
-    )
     a.add_argument("--recorded-at", type=recorded_at_arg, help="override timestamp (RFC 3339)")
     a.add_argument(
         "--root",
@@ -1317,10 +1263,6 @@ def main(argv=None) -> int:
         "--severity",
         choices=SEVERITY_LEVELS,
         help="target level for --decision severity (upgrade or downgrade)",
-    )
-    r.add_argument(
-        "--identity",
-        help="optional: must match the ledger token holder (the token is the identity)",
     )
     r.add_argument("--rationale")
     r.add_argument("--recorded-at", type=recorded_at_arg)

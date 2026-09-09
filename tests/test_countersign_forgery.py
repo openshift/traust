@@ -67,29 +67,19 @@ def test_mid_line_decision_never_matches():
 
 
 def test_same_day_two_signers_distinct_event_ids():
-    a = cs.build_human_event(
-        "F-1",
-        "false_positive",
-        "r1",
-        {"identity": "alice", "kind": "human"},
-        "2026-07-31T10:00:00+00:00",
-    )
-    b = cs.build_human_event(
-        "F-1",
-        "false_positive",
-        "r2",
-        {"identity": "bob", "kind": "human"},
-        "2026-07-31T11:00:00+00:00",
-    )
+    # The identity-in-source-ref invariant now lives in the ledger SDK's builder.
+    from traust_contracts.v1.models.layer import LayerActor
+    from traust_ledger._internal.events.builders import build_human_event
+
+    def bhe(identity, rationale, at):
+        actor = LayerActor(kind="human", identity=identity)
+        return build_human_event("F-1", "false_positive", rationale, actor, at).to_dict()
+
+    a = bhe("alice", "r1", "2026-07-31T10:00:00+00:00")
+    b = bhe("bob", "r2", "2026-07-31T11:00:00+00:00")
     assert a["event_id"] != b["event_id"]
     # same signer, same day, same decision still dedupes
-    a2 = cs.build_human_event(
-        "F-1",
-        "false_positive",
-        "r1-again",
-        {"identity": "alice", "kind": "human"},
-        "2026-07-31T15:00:00+00:00",
-    )
+    a2 = bhe("alice", "r1-again", "2026-07-31T15:00:00+00:00")
     assert a2["event_id"] == a["event_id"]
 
 
