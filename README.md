@@ -1,12 +1,12 @@
 # Traust
 
-Traust is a workflow engine for automated, multi-framework security assessment of software portfolios: source repositories, container images, RPM packages, Kubernetes operators, infrastructure-as-code and the services built from them. This repository holds the skills, slash commands, schemas and prompt engineering that let an AI coding agent run consistent, repeatable audits, triage and validate what it finds, record every disposition in a signed ledger, and drive remediation — at the scale of hundreds of repositories rather than one review at a time. Traust was developed by Red Hat's Hybrid Platforms security team and is published under the Apache License 2.0.
+Traust is a workflow engine for the automated, multi-framework security assessment of software portfolios, including; source repositories, container images, RPM packages, Kubernetes operators, infrastructure-as-code and the services built from them. This repository holds the skills, slash commands, schemas and prompt engineering that let an AI coding agent run consistent, repeatable audits, then triage and validate what it finds. It records every disposition in a signed ledger, and drives remediation at scale rather than one review at a time. Traust was developed by Red Hat's Hybrid Platforms team and is published under Apache License 2.0.
 
 ## Purpose
 
 Manual security review does not scale to hundreds of repositories across dozens of product releases. This workflow engine equips AI coding agents with structured methodologies to perform consistent, repeatable security audits — applying industry-standard frameworks to every repository in the portfolio.
 
-The harness is designed to be agent-agnostic in principle, with current implementations targeting Claude Code and Crush (via shared skills and slash commands).
+Traust is designed to be agent-agnostic in principle, with the current implementation supporting Anthropic models using Claude Code and Crush (via shared skills and slash commands).
 
 ## Components
 
