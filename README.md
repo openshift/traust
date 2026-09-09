@@ -11,8 +11,7 @@ Traust is designed to be agent-agnostic in principle, with the current implement
 ## Components
 
 This repository is the **agent-facing layer** of a five-component stack, not the
-whole system. Skills, slash commands and CLIs live here; the deterministic
-machinery, the ledger trust root and the shared vocabulary are separately
+whole system. Skills, slash commands and CLIs live here; the Traust engine, the ledger, the contracts, and the SDK are separately
 versioned repositories, installed as pip dependencies pinned by git tag.
 
 ```
