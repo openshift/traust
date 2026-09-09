@@ -99,7 +99,6 @@ from pathlib import Path
 from traust_engine.ledger import (
     LedgerService,
     compute_claim_hash,  # canonical impl
-    compute_event_id,
 )
 
 from traust.context import (
@@ -464,7 +463,6 @@ def build_events(
                 audit_path, {"events": [], "needs_review": [], "register": []}
             )
             event = {
-                "event_id": compute_event_id(report_rel, finding_id, validity, None),
                 "finding_ref": finding_id,
                 "recorded_at": recorded_at,
                 "occurred_at": occurred_at,

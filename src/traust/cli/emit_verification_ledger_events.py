@@ -41,7 +41,7 @@ import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
-from traust_engine.ledger import LedgerService, compute_event_id
+from traust_engine.ledger import LedgerService
 
 from traust.cli.emit_validation_ledger_events import (
     layer_path_for,
@@ -87,11 +87,11 @@ def resolve_audit_path(report: dict, results_root: Path) -> Path:
     return local.resolve()
 
 
-def map_disposition(finding: dict) -> tuple[dict, str | None, str | None]:
-    """Return (disposition, validity_for_event_id, resolution_for_event_id)."""
+def map_disposition(finding: dict) -> dict:
+    """Return the event disposition for a verification verdict."""
     verdict = str(finding.get("verdict") or "")
     if verdict == "false_positive":
-        return {"validity": "false_positive"}, "false_positive", None
+        return {"validity": "false_positive"}
 
     resolution = VERDICT_RESOLUTION.get(verdict)
     if resolution is None:
@@ -105,7 +105,7 @@ def map_disposition(finding: dict) -> tuple[dict, str | None, str | None]:
     ):
         resolution = "fix_in_progress"
 
-    return {"resolution": resolution}, None, resolution
+    return {"resolution": resolution}
 
 
 def build_events(
@@ -146,7 +146,7 @@ def build_events(
             )
             continue
         try:
-            disposition, validity, resolution = map_disposition(finding)
+            disposition = map_disposition(finding)
         except ValueError as e:
             skipped.append({"original_id": finding_ref, "verdict": verdict, "reason": str(e)})
             continue
@@ -154,7 +154,6 @@ def build_events(
         evidence = finding.get("evidence") or {}
         explanation = evidence.get("explanation") if isinstance(evidence, dict) else ""
         event: dict = {
-            "event_id": compute_event_id(source_ref, finding_ref, validity, resolution),
             "finding_ref": finding_ref,
             "recorded_at": recorded_at,
             "occurred_at": occurred_at,

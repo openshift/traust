@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import pytest
-from traust_engine.ledger import compute_event_id
 
 from traust.cli.emit_verification_ledger_events import (
     build_events,
@@ -43,70 +42,32 @@ def _finding(original_id, verdict, **kwargs):
 
 class TestMapDisposition:
     @pytest.mark.parametrize(
-        "verdict, cross_repo, expected_disposition, expected_validity, expected_resolution",
+        "verdict, cross_repo, expected_disposition",
         [
-            ("resolved", None, {"resolution": "resolved"}, None, "resolved"),
-            ("new_approach", None, {"resolution": "resolved"}, None, "resolved"),
-            (
-                "partially_resolved",
-                None,
-                {"resolution": "partially_resolved"},
-                None,
-                "partially_resolved",
-            ),
+            ("resolved", None, {"resolution": "resolved"}),
+            ("new_approach", None, {"resolution": "resolved"}),
+            ("partially_resolved", None, {"resolution": "partially_resolved"}),
             (
                 "partially_resolved",
                 {"propagation": "pending", "fix_repo": "x"},
                 {"resolution": "fix_in_progress"},
-                None,
-                "fix_in_progress",
             ),
             (
                 "partially_resolved",
                 {"propagation": "consumed", "fix_repo": "x"},
                 {"resolution": "partially_resolved"},
-                None,
-                "partially_resolved",
             ),
-            ("unresolved", None, {"resolution": "open"}, None, "open"),
-            (
-                "regression",
-                None,
-                {"resolution": "regression_introduced"},
-                None,
-                "regression_introduced",
-            ),
-            (
-                "risk_accepted",
-                None,
-                {"resolution": "risk_accepted"},
-                None,
-                "risk_accepted",
-            ),
-            (
-                "false_positive",
-                None,
-                {"validity": "false_positive"},
-                "false_positive",
-                None,
-            ),
+            ("unresolved", None, {"resolution": "open"}),
+            ("regression", None, {"resolution": "regression_introduced"}),
+            ("risk_accepted", None, {"resolution": "risk_accepted"}),
+            ("false_positive", None, {"validity": "false_positive"}),
         ],
     )
-    def test_verdict_mapping(
-        self,
-        verdict,
-        cross_repo,
-        expected_disposition,
-        expected_validity,
-        expected_resolution,
-    ):
+    def test_verdict_mapping(self, verdict, cross_repo, expected_disposition):
         finding = {"verdict": verdict}
         if cross_repo is not None:
             finding["cross_repo"] = cross_repo
-        disposition, validity, resolution = map_disposition(finding)
-        assert disposition == expected_disposition
-        assert validity == expected_validity
-        assert resolution == expected_resolution
+        assert map_disposition(finding) == expected_disposition
 
     def test_unknown_verdict_raises_value_error(self):
         with pytest.raises(ValueError, match="unsupported verdict"):
@@ -210,16 +171,6 @@ class TestBuildEvents:
         assert by_ref["FIND-005"] == {"resolution": "regression_introduced"}
         assert by_ref["FIND-006"] == {"resolution": "risk_accepted"}
         assert by_ref["FIND-007"] == {"validity": "false_positive"}
-
-    def test_event_ids_are_deterministic(self):
-        report = _report([_finding("FIND-001", "resolved")])
-        audit = _audit(["FIND-001"])
-        out1 = build_events(report, SOURCE_REF, audit, RECORDED_AT)
-        out2 = build_events(report, SOURCE_REF, audit, RECORDED_AT)
-        assert out1["events"][0]["event_id"] == out2["events"][0]["event_id"]
-        assert out1["events"][0]["event_id"] == compute_event_id(
-            SOURCE_REF, "FIND-001", None, "resolved"
-        )
 
     def test_rationale_comes_from_evidence_explanation(self):
         finding = _finding("FIND-001", "resolved")

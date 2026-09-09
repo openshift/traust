@@ -169,11 +169,6 @@ class TestEmitter(unittest.TestCase):
         self.assertEqual(out["events"], [])
         self.assertTrue(out["skipped"])
 
-    def test_event_id_idempotent(self):
-        a = _emit([_tfinding()])["events"][0]["event_id"]
-        b = _emit([_tfinding()])["events"][0]["event_id"]
-        self.assertEqual(a, b)
-
 
 def _fp(**kw):
     base = _tfinding(

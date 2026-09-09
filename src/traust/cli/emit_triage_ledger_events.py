@@ -58,7 +58,7 @@ import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
-from traust_engine.ledger import LedgerService, compute_event_id
+from traust_engine.ledger import LedgerService
 
 from traust.context import (
     add_config_home_arg,
@@ -285,7 +285,6 @@ def build_events(
             continue
 
         event = {
-            "event_id": compute_event_id(source_ref, orig, validity, None),
             "finding_ref": orig,
             "recorded_at": recorded_at,
             "occurred_at": occurred_at,

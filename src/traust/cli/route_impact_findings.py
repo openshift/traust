@@ -66,7 +66,6 @@ from pathlib import Path
 
 from traust_engine.corpus.resolver import normalize_repo_url
 from traust_engine.ledger import (
-    compute_event_id,
     findings_from_events,
     fingerprint,
 )
@@ -356,7 +355,6 @@ def build_event(
         f"findings the day the advisory lands)."
     )
     return {
-        "event_id": compute_event_id(artifact_ref, new_id, None, "open"),
         "finding_ref": new_id,
         "recorded_at": recorded_at,
         "occurred_at": occurred_at,
