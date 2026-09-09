@@ -5,7 +5,7 @@
 GitLab's Vulnerability Report / security dashboards do not ingest SARIF
 natively — they want the GitLab security-report JSON schema
 (https://gitlab.com/gitlab-org/security-products/security-report-schemas,
-targeted major: v15). This is the gitlab.cee counterpart of
+targeted major: v15). This is the GitLab counterpart of
 `export_sarif.py` (SARIF plan P2,;
 progress-tracker/plans/sarif-integration-plan.md), and the same
 invariants hold:
