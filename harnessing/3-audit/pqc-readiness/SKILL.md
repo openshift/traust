@@ -77,11 +77,15 @@ reports — this skill goes deeper on the readiness question.
 
 ### 1. Gather facts
 
+If the pinned scanner binary needs to be built or rebuilt, follow
+[build_pqc_scan.sh](build_pqc_scan.sh); it pins the source revision and
+records the binary checksum for the readiness checks.
+
 If facts already exist (`--from-facts`), load them. Otherwise run the
 deterministic scanner:
 
 ```bash
-python3 <skill-base>/../pqc-readiness/pqc_facts.py \
+python3 <skill-base>/scripts/pqc_facts.py \
   --repo-dir <checkout> --repo-url <URL> \
   --out <slug>-pqc-facts.json --cbom-out <slug>-cbom.json
 ```
@@ -214,7 +218,7 @@ Lead with plain language:
 | `how`       | 1–3 sentences distilled from the matching remediation playbook — _how_ to resolve. Self-contained. **Never** cite `remediation/…`, `notes/…`, or `harnessing/…` paths (owners do not have the harness).                                                                               |
 | `locations` | Repo-relative `file:line` (or `file`) anchors from the cited facts so the owner can open the right place. Required whenever the action maps to first-party code, lockfiles, manifests, or config in _this_ repo. Empty/omit only for pure external/platform waits with no local file. |
 
-Consult playbooks under `remediation/` (table below) to write `how`; those files are **agent-only**. `/patch` loads them via `remediation/index.yaml` as DOMAIN KNOWLEDGE — do not rely on report paths for that.
+Consult playbooks under `remediation/` (table below) to write `how`; those files are **agent-only**. `/patch` loads them via [`remediation/index.yaml`](remediation/index.yaml) as DOMAIN KNOWLEDGE — do not rely on report paths for that.
 
 Example:
 
@@ -262,7 +266,7 @@ entry. Each entry carries the `locations` from those facts (repo
 `remediation_effort`/`blast_radius`
 where one exists, names the concrete `target` (version, mechanism, or
 policy value), and sets `recipe` to the matching playbook under
-`harnessing/3-audit/pqc-readiness/remediation/` (per `remediation/index.yaml`
+`harnessing/3-audit/pqc-readiness/remediation/` (per [`remediation/index.yaml`](remediation/index.yaml)
 matching semantics; `null` when no recipe applies). `recipe` is
 **machine metadata for `/patch`** — never print it as a user-facing
 Playbook link in the Markdown companion.
@@ -404,32 +408,32 @@ floors. No cluster → `runtime_verification_required: true`.
 | Note                             | When to open                                       |
 | -------------------------------- | -------------------------------------------------- |
 | `notes/capabilities/<id>.yaml`   | Need a version floor or FIPS meaning               |
-| `notes/who-sets-tls.yaml`        | Need an ownership seed from fact signals           |
-| `notes/language.md`              | Writing the report (glossary, caps, banned jargon) |
-| `notes/scoring.yaml`             | Bucket thresholds, effort labels                   |
-| `notes/platform-governance.yaml` | Wording when a platform governs TLS                |
+| [`notes/who-sets-tls.yaml`](notes/who-sets-tls.yaml)        | Need an ownership seed from fact signals           |
+| [`notes/language.md`](notes/language.md)              | Writing the report (glossary, caps, banned jargon) |
+| [`notes/scoring.yaml`](notes/scoring.yaml)             | Bucket thresholds, effort labels                   |
+| [`notes/platform-governance.yaml`](notes/platform-governance.yaml) | Wording when a platform governs TLS                |
 
 ## Remediation playbooks (agent-only — distill into `how`; `/patch` loads full text)
 
 Open the matching guide to write `do_next.how` and to set
 `remediations[].recipe`. **Do not emit these paths in owner-facing
-JSON/MD.** `/patch` re-resolves them via `remediation/index.yaml` and
+JSON/MD.** `/patch` re-resolves them via [`remediation/index.yaml`](remediation/index.yaml) and
 injects the markdown as DOMAIN KNOWLEDGE.
 
 | Guide                                             | When it applies                                                    |
 | ------------------------------------------------- | ------------------------------------------------------------------ |
-| `remediation/tls-ke-server/go.md`                 | Go service needs to honor platform TLS or enable ML-KEM            |
-| `remediation/tls-ke-server/python.md`             | Python service TLS config                                          |
-| `remediation/tls-ke-server/nodejs.md`             | Node.js service TLS config                                         |
-| `remediation/tls-ke-server/rust.md`               | Rust service TLS config                                            |
-| `remediation/tls-ke-client/go.md`                 | Go client restricts TLS negotiation (CurvePreferences, MaxVersion) |
-| `remediation/tls-ke-client/generic.md`            | Non-Go client restricts TLS negotiation                            |
-| `remediation/config-blockers/crypto-policy.md`    | System crypto-policy blocks PQC                                    |
-| `remediation/config-blockers/runtime-switches.md` | GODEBUG / env vars disable PQC                                     |
-| `remediation/config-blockers/curve-pins.md`       | Explicit classical-only group configuration                        |
-| `remediation/digital-signatures/checklist.md`     | PQ signature agility                                               |
+| [`remediation/tls-ke-server/go.md`](remediation/tls-ke-server/go.md)                 | Go service needs to honor platform TLS or enable ML-KEM            |
+| [`remediation/tls-ke-server/python.md`](remediation/tls-ke-server/python.md)             | Python service TLS config                                          |
+| [`remediation/tls-ke-server/nodejs.md`](remediation/tls-ke-server/nodejs.md)             | Node.js service TLS config                                         |
+| [`remediation/tls-ke-server/rust.md`](remediation/tls-ke-server/rust.md)               | Rust service TLS config                                            |
+| [`remediation/tls-ke-client/go.md`](remediation/tls-ke-client/go.md)                 | Go client restricts TLS negotiation (CurvePreferences, MaxVersion) |
+| [`remediation/tls-ke-client/generic.md`](remediation/tls-ke-client/generic.md)            | Non-Go client restricts TLS negotiation                            |
+| [`remediation/config-blockers/crypto-policy.md`](remediation/config-blockers/crypto-policy.md)    | System crypto-policy blocks PQC                                    |
+| [`remediation/config-blockers/runtime-switches.md`](remediation/config-blockers/runtime-switches.md) | GODEBUG / env vars disable PQC                                     |
+| [`remediation/config-blockers/curve-pins.md`](remediation/config-blockers/curve-pins.md)       | Explicit classical-only group configuration                        |
+| [`remediation/digital-signatures/checklist.md`](remediation/digital-signatures/checklist.md)     | PQ signature agility                                               |
 
-Capability / ownership notes (`notes/capabilities/`, `notes/who-sets-tls.yaml`,
+Capability / ownership notes (`notes/capabilities/`, [`notes/who-sets-tls.yaml`](notes/who-sets-tls.yaml),
 …) are the same class: consult to score, never cite in the report.
 
 ---
@@ -470,7 +474,7 @@ into the portfolio migration plan:
 with file:line, go-directive quick wins, per-product roll-up via the
 graph's `ships` edges). Uses plain-English section headings and
 human-readable FIPS/provenance labels; the Go PQC threshold is consumed
-at runtime from the `notes/reference/pqc-version-matrix.yaml` input
+at runtime from the [`notes/reference/pqc-version-matrix.yaml`](notes/reference/pqc-version-matrix.yaml) input
 table. Read-only full
 rebuild; re-run after mop-up or probe passes change the reports.
 
@@ -523,7 +527,7 @@ built by python3 -m traust.cli portfolio for npm / pypi / maven /
 cargo / ruby / nuget) to discover crypto-relevant dependencies **across
 languages**, not just the Go/TLS surface `pqc_facts.py` covers. The set
 of crypto packages it looks for is a **curated STARTER seed list**,
-`notes/crypto-packages.yaml` — keyed by ecosystem, each package carries a
+[`notes/crypto-packages.yaml`](notes/crypto-packages.yaml) — keyed by ecosystem, each package carries a
 PQC `posture` (`classical-only` / `pqc-capable` / `inherits` +
 `capability_card` / `unknown`) and a one-line note. **Extend it there:**
 add a package under its ecosystem key using the exact `pkg:<eco>/<name>`
@@ -556,13 +560,13 @@ Chain reasoning:    crypto-analysis SKILL.md    → governance chains (who owns 
 | ----------------------- | ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `crypto_probe.py`       | python3 -m traust.cli adapters crypto-probe                        | Provider census: Go, Node, JDK, Python, Rust, .NET, Ruby, C/C++ crypto stacks, base images, RPM locks, GODEBUG, crypto-policies                                                  |
 | `crypto_audit.py`       | python3 -m traust.cli adapters crypto-audit                        | Unopinionated data collector — `cluster` tier with `--groups` provides raw TLS negotiation facts for PQC probing                                                                 |
-| `pqc_facts.py`          | `harnessing/3-audit/pqc-readiness/scripts/pqc_facts.py`          | Imports crypto*probe, maps `CRYPTO*_`→`HP*CHAIN*_`, adds PQC capability assessment via `\_pqc_capable_version()`(reads thresholds from`notes/reference/pqc-version-matrix.yaml`) |
+| `pqc_facts.py`          | `harnessing/3-audit/pqc-readiness/scripts/pqc_facts.py`          | Imports crypto*probe, maps `CRYPTO*_`→`HP*CHAIN*_`, adds PQC capability assessment via `\_pqc_capable_version()`(reads thresholds from[`notes/reference/pqc-version-matrix.yaml`](notes/reference/pqc-version-matrix.yaml)) |
 | `scan_xcrypto_usage.py` | `harnessing/3-audit/pqc-readiness/scripts/scan_xcrypto_usage.py` | golang.org/x/crypto evidence: first-party import sites, go.mod versions, optional callgraph reachability (somepath witness)                                                      |
 | `build_pqc_blockers.py` | `harnessing/3-audit/pqc-readiness/scripts/build_pqc_blockers.py` | Projects readiness `remediations[]` into the findings-shaped `<slug>-pqc-blockers.json` (contracts/schemas/pqc-blockers.schema.json) for `/patch` and other findings consumers              |
 | `novel.py`              | `harnessing/5-validate/validate-findings/novel.py`          | Runtime probes: `pqc-tls-negotiation`, `pqc-cert-algorithm`, `pqc-crypto-policy`, `pqc-backend-tls`                                                                              |
 | `crypto-analysis`       | `harnessing/3-audit/crypto-analysis/SKILL.md`            | Governance chain reasoning — traces who decides crypto config from OS through platform to app code                                                                               |
 
-PQC version thresholds live in `notes/reference/pqc-version-matrix.yaml` (single source of
+PQC version thresholds live in [`notes/reference/pqc-version-matrix.yaml`](notes/reference/pqc-version-matrix.yaml) (single source of
 truth); `pqc_facts.py` `_pqc_capable_version()` reads them at runtime. Current:
 Go >= 1.24, Node >= 22 (OpenSSL 3.5 backport), JDK >= 24, OpenSSL >= 3.5,
 rustls >= 0.23.27, GnuTLS >= 3.8 (experimental), NSS >= 3.105. Runtime behavior
@@ -597,7 +601,7 @@ is confirmed by probing — never by static data alone.
 - `pqc/_manifest/crypto-deps.{json,md}` — **Emits:** written by
   `scan_crypto_deps_graph.py` from the portfolio graph's multi-ecosystem
   `depends_on` edges (input: `analysis-results/graph/portfolio-graph.db`
-  produced by `/portfolio-graph`; seed list `notes/crypto-packages.yaml`).
+  produced by `/portfolio-graph`; seed list [`notes/crypto-packages.yaml`](notes/crypto-packages.yaml)).
   **Consumes:** none authored here beyond the graph. Consumed by
   `build_pqc_rollup.py` and `build_pqc_product_reports.py` (both import
   `discover()`) for the roll-up's portfolio-level and the per-product

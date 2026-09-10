@@ -1,6 +1,6 @@
 ---
 name: check-harness-docs
-description: Use when adding or editing a skill, script, schema, or pipeline stage in the traust repo, or before committing any change to its docs — runs python3 -m traust.cli check docs-consistency to verify the harness's own documentation (README.md, AGENTS.md, PROCESS.md, docs/) has not drifted from the tree. Checks that "N skills / N commands / N Python scripts / N-stage" count claims match the actual tree counts, that every repo-relative Markdown link and in-repo backtick path still resolves, that inventory docs mention every skill/schema/guide, that CLI examples only use flags that exist in the invoked script's source, that every external CLI tool the harness invokes (subprocess/shutil.which/self-named --tool flags/vendored bin/ paths/command -v) has a row in docs/external-dependencies.md, and — when the gitlab-profile sibling is checked out — that the GitLab group README's harness-version and skill/command-count claims match too. Use when asked to "check the harness docs", "did I break the docs", "verify doc consistency", or "is anything stale after this change".
+description: Use when changing harness skills, scripts, schemas, pipeline stages, or documentation, or when checking for documentation drift before a commit. Verify counts, local paths, inventory coverage, CLI examples, external dependency records, and version consistency against the tree; update stale documentation and rerun the checks.
 argument-hint: "[--root DIR]"
 user-invocable: true
 metadata:

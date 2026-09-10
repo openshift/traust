@@ -287,7 +287,7 @@ placing ANY finding-derived text into the HTML:
    with inline CSS only.
 
 The HTML dashboard must follow this exact structure and styling. Use the
-reference template at `references/executive-summary-template.html` relative to
+reference template at [`references/executive-summary-template.html`](references/executive-summary-template.html) relative to
 this skill's directory for the complete CSS. The key elements are:
 
 #### 1. Document Structure

@@ -50,6 +50,13 @@ structured `scanner_correlation` entry (tool `opengrep`, `rule_id`,
   `progress-tracker/metrics/rule-mining/` so the report versions alongside
   the other dashboards.
 
+## Bundled precedent cards
+
+[precedent-cards/pilot.yaml](precedent-cards/pilot.yaml) supplies the pilot
+cards used by `tests/test_compile_precedent_cards.py` to check card
+validation and compiler behavior. Consult it when maintaining precedent-card
+compilation; these fixtures are not findings or production sweep inputs.
+
 ## Procedure
 
 **Step 1 — run the deterministic miner** (all analysis is script-side):

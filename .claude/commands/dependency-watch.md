@@ -1,1 +1,5 @@
+---
+description: "Check new vulnerability advisories against portfolio dependencies and route affected repositories into findings."
+---
+
 Run the advisory-driven dependency lane using the dependency-watch skill. Load the skill at .claude/skills/dependency-watch/SKILL.md and follow its procedure — refresh the feeds (fetch_feeds.py), determine the new-advisory set (or the single CVE passed in $ARGUMENTS), run impact analysis per advisory (run_impact_analysis.py; check portfolio-graph freshness first), take severity from the advisory record, file affected repos via route_impact_findings.py (direct-entry: baseline + ledger at not_verified, idempotent), and report the routed/already-filed/no-baseline counts with finding IDs. Pass through --include-likely and --dry-run when given.

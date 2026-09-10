@@ -1,1 +1,5 @@
+---
+description: "Record triage or validation evidence in the disposition ledger and rebuild current finding status."
+---
+
 Record human triage feedback or machine validation results against the findings of a security-audit report and rebuild the cumulative status report. Load the skill at .claude/skills/track-findings/SKILL.md and follow its full procedure — $ARGUMENTS should include the audit report reference (path or <product>/<repo> shorthand) followed by zero or more disposition sources: merge-request/PR URLs, commit SHAs, Jira keys, validation or remediation-verification report paths, or --interactive for a human triage session (no sources = auto-discover machine reports). The skill appends idempotent events to the append-only <repo>-findings-layer.json ledger under the three-tier trust policy (explicit grammar + LDAP-verified identity + authority auto-records; everything else queues for human confirmation; false_positive always requires an LDAP-verified human), then runs build_cumulative.py to regenerate <repo>-findings-current.{json,md} and validates both against contracts/schemas/layer.schema.json and contracts/schemas/report.schema.json.

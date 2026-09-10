@@ -1,5 +1,7 @@
 # Traust
 
+[![skillsaw grade](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fopenshift%2Ftraust%2Fmain%2F.skillsaw-badge.json)](https://skillsaw.org/)
+
 Traust is a workflow engine for the automated, multi-framework security assessment of software portfolios, including; source repositories, container images, RPM packages, Kubernetes operators, infrastructure-as-code and the services built from them. This repository holds the skills, slash commands, schemas and prompt engineering that let an AI coding agent run consistent, repeatable audits, then triage and validate what it finds. It records every disposition in a signed ledger, and drives remediation at scale rather than one review at a time. Traust was developed by Red Hat's Hybrid Platforms team and is published under Apache License 2.0.
 
 ## Purpose

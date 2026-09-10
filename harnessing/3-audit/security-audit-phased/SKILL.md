@@ -1,6 +1,6 @@
 ---
 name: security-audit-phased
-description: Multi-phase, human-in-the-loop security code audit — Phase 1 reconnaissance, Phase 2 prior-vuln pattern analysis, Phase 3 systematic CWE-taxonomy weakness hunt (including PEACH tenant isolation), Phase 4 cross-cutting analysis and final report, Phase 6 reproducer generation, plus review/CVSS/follow-up-seed helpers. Each phase is a separate slash command that reads the previous phase's JSON and writes its own.
+description: Use when a reviewer wants to steer a security code audit between phases — Phase 1 reconnaissance, Phase 2 prior-vuln pattern analysis, Phase 3 systematic CWE-taxonomy weakness hunt (including PEACH tenant isolation), Phase 4 cross-cutting analysis and final report, Phase 6 reproducer generation, plus review/CVSS/follow-up-seed helpers. Each phase is a separate slash command that reads the previous phase's JSON and writes its own.
 metadata:
   harness.tier: "primary"
 ---
@@ -19,14 +19,14 @@ Each phase is invoked as its own slash command and reads/writes JSON under `$AUD
 
 | Command | Phase | Reads | Writes |
 |---|---|---|---|
-| `/security-audit-init` | **P1** Reconnaissance — trust boundaries, privileged ops, data flow, privilege contexts, attack surface, tenant isolation (PEACH) | source, prior-vuln reports, Coverity results | `phase1-recon.json` |
-| `/security-audit-p2` | **P2** Prior-vulnerability pattern analysis | `phase1-recon.json`, prior-vuln reports | `phase2-prior-vulns.json` |
-| `/security-audit-p3` | **P3** Systematic weakness hunt across the CWE taxonomy (categories 1–8) plus **category 9 Tenant Isolation (PEACH)** | `phase1-recon.json`, `phase2-prior-vulns.json` | `phase3-hunt.json` |
-| `/security-audit-p4` | **P4** Cross-cutting analysis (error paths, concurrency, vuln chains, PEACH escape chains) and final consolidated report | `phase{1,2,3}-*.json` | `phase4-final.json` |
-| `/security-audit-p6` | **P6** Reproducer generation for accepted findings | `phase4-final.json` | reproducers |
-| `/security-audit-review` | Independent review of a completed final report | `phase4-final.json` | review notes |
-| `/security-audit-cvss` | CVSS v3.1 scoring + Red Hat severity for accepted findings | `phase4-final.json` | CVSS annotations |
-| `/security-audit-follow-up-seeds` | Emit seeds for a follow-up audit run | `phase4-final.json` | seed list |
+| [`/security-audit-init`](security-audit-init.md) | **P1** Reconnaissance — trust boundaries, privileged ops, data flow, privilege contexts, attack surface, tenant isolation (PEACH) | source, prior-vuln reports, Coverity results | `phase1-recon.json` |
+| [`/security-audit-p2`](security-audit-p2.md) | **P2** Prior-vulnerability pattern analysis | `phase1-recon.json`, prior-vuln reports | `phase2-prior-vulns.json` |
+| [`/security-audit-p3`](security-audit-p3.md) | **P3** Systematic weakness hunt across the CWE taxonomy (categories 1–8) plus **category 9 Tenant Isolation (PEACH)** | `phase1-recon.json`, `phase2-prior-vulns.json` | `phase3-hunt.json` |
+| [`/security-audit-p4`](security-audit-p4.md) | **P4** Cross-cutting analysis (error paths, concurrency, vuln chains, PEACH escape chains) and final consolidated report | `phase{1,2,3}-*.json` | `phase4-final.json` |
+| [`/security-audit-p6`](security-audit-p6.md) | **P6** Reproducer generation for accepted findings | `phase4-final.json` | reproducers |
+| [`/security-audit-review`](security-audit-review.md) | Independent review of a completed final report | `phase4-final.json` | review notes |
+| [`/security-audit-cvss`](security-audit-cvss.md) | CVSS v3.1 scoring + Red Hat severity for accepted findings | `phase4-final.json` | CVSS annotations |
+| [`/security-audit-follow-up-seeds`](security-audit-follow-up-seeds.md) | Emit seeds for a follow-up audit run | `phase4-final.json` | seed list |
 
 ## Adversarial content (CWE-1427, never waived)
 

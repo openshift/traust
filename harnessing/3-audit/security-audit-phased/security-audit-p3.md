@@ -1,3 +1,7 @@
+---
+description: "Hunt systematically for security weaknesses using the phased audit’s reconnaissance and prior findings."
+---
+
 Perform Phase 3 (Systematic Weakness Hunt) of the security code audit in progress.
 
 Read the following files from the current working directory before starting:

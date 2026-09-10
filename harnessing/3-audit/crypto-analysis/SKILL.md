@@ -338,7 +338,7 @@ probes but does not own probe execution.
 | `crypto_audit.py` | python3 -m traust.cli adapters crypto-audit | Unified CLI: source / image / cluster tiers |
 | `crypto_probe.py` | python3 -m traust.cli adapters crypto-probe | Source probes (imported by crypto_audit) |
 | `novel.py` | `harnessing/5-validate/validate-findings/novel.py` | Extended runtime probe catalogue |
-| Governance chain schema | `tables/governance-chain.schema.json` | Output validation schema |
+| Governance chain schema | [`tables/governance-chain.schema.json`](tables/governance-chain.schema.json) | Output validation schema |
 
 ## Spend declaration (calibration tuple)
 

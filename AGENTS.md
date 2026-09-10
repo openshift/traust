@@ -19,7 +19,7 @@ Every skill lives as a self-contained directory with a `SKILL.md` prompt and opt
 - **Workflow skills** sit under their pipeline stage — `harnessing/<N>-<stage>/<name>/`, e.g. `harnessing/4-triage/triage/`. The nine stage directories are ①–⑨ and carry their order in the name.
 - **Everything else** (gates, dashboards, graphs, corpus-QA, quarantined skills) stays at `harnessing/<name>/`, because it is not a stage and filing it under one would make the tree lie.
 
-**Never enumerate skills by globbing `harnessing/*/`.** Go through `skill_dirs()` / `skill_dir(name)` in `src/traust/paths.py`, which spans both levels; a one-level glob silently finds only the root-level skills. Likewise, look a skill up by name rather than building `harnessing/<name>` from parts.
+**Never enumerate skills by globbing `harnessing/*/`.** Go through `skill_dirs()` / `skill_dir(name)` in [`src/traust/paths.py`](src/traust/paths.py), which spans both levels; a one-level glob silently finds only the root-level skills. Likewise, look a skill up by name rather than building `harnessing/<name>` from parts.
 
 Agent discovery layers are symlinks, and the name an agent sees stays flat regardless of stage:
 - `.claude/skills/<name>` → `../../harnessing/[<N>-<stage>/]<name>` (Claude Code)
@@ -27,7 +27,7 @@ Agent discovery layers are symlinks, and the name an agent sees stays flat regar
 - `.claude/commands/<name>.md` — slash command wrappers (thin files that invoke the skill; they reference `.claude/skills/<name>/SKILL.md`, so they never name a stage)
 - `.crush/commands/<name>.md` → `../../.claude/commands/<name>.md`
 
-Regenerate the links with `bin/link_skills.sh`, which walks both levels.
+Regenerate the links with [`bin/link_skills.sh`](bin/link_skills.sh), which walks both levels.
 
 When editing a skill, always edit the file under `harnessing/`. Never create a separate copy in `.claude/skills/` or `.crush/skills/`.
 
@@ -42,7 +42,7 @@ Multi-skill CLIs live in `src/traust/cli/` and are invoked as python3 -m traust.
 - Shared library (>=3 importers): `src/traust/lib/`
 - Ops / one-shot: `src/traust/{ops,migrations}/`
 
-`validate_report`, `render_report`, `checkpoint`, `countersign`, `emit_triage_ledger_events`, `emit_validation_ledger_events`, and related tooling are package modules (many in sibling `traust-engine`). Skills invoke them via python3 -m … from the harness venv. The citation gate and symbol index are triage accelerators — they route, gate, tag, or index, and never author a verdict (see `docs/deterministic-inferential-mix.md`).
+`validate_report`, `render_report`, `checkpoint`, `countersign`, `emit_triage_ledger_events`, `emit_validation_ledger_events`, and related tooling are package modules (many in sibling `traust-engine`). Skills invoke them via python3 -m … from the harness venv. The citation gate and symbol index are triage accelerators — they route, gate, tag, or index, and never author a verdict (see [`docs/deterministic-inferential-mix.md`](docs/deterministic-inferential-mix.md)).
 
 Legacy placement (pre-C8):
 - Used by exactly one skill: place under `harnessing/<skill>/`
@@ -103,13 +103,13 @@ and the semver constraint in `dependencies`, then `uv lock` and `uv sync`.
 
 ### Running the tests
 
-**pytest is the only test runner**: `.venv/bin/python -m pytest tests/` (or `python -m pytest tests/` inside the venv). Do NOT use python3 -m unittest discover — a substantial share of the suite (~30%, spread across many modules — `tests/test_scope.py`, `tests/test_validate_findings.py`, the gate/ledger regression files, and more) is pytest-native and silently errors out of a unittest run, hiding real failures. pytest runs the stdlib-unittest modules natively, so one invocation covers everything. A clean run shows zero errors; treat any error as a real failure, never ambient noise.
+**pytest is the only test runner**: `.venv/bin/python -m pytest tests/` (or `python -m pytest tests/` inside the venv). Do NOT use python3 -m unittest discover — a substantial share of the suite (~30%, spread across many modules — [`tests/test_scope.py`](tests/test_scope.py), [`tests/test_validate_findings.py`](tests/test_validate_findings.py), the gate/ledger regression files, and more) is pytest-native and silently errors out of a unittest run, hiding real failures. pytest runs the stdlib-unittest modules natively, so one invocation covers everything. A clean run shows zero errors; treat any error as a real failure, never ambient noise.
 
 ### Adding a new skill
 
 1. Decide where it goes: a pipeline stage → `harnessing/<N>-<stage>/<name>/SKILL.md`; anything else → `harnessing/<name>/SKILL.md`. Create it there with the skill prompt.
 2. Add implementation scripts alongside `SKILL.md` if needed
-3. Link it for both agents by running `bin/link_skills.sh` (it walks both levels and names the link after the skill, not the stage)
+3. Link it for both agents by running [`bin/link_skills.sh`](bin/link_skills.sh) (it walks both levels and names the link after the skill, not the stage)
 4. Optionally add a slash command: create `.claude/commands/<name>.md` and symlink `.crush/commands/<name>.md → ../../.claude/commands/<name>.md`
 5. **Wire the integrations.** Diff the new skill's inputs/outputs against the rest of the harness: for every artifact it emits, either wire a consumer (and reference the producer from the consuming skill) or record why it is terminal; for every artifact it consumes, name the producer. Document the result in an `## Integrations` section in the SKILL.md — python3 -m traust.cli.check_skill_alignment (rules A9/A10, pre-commit) enforces both, and an unwired artifact is a gate failure, not a style nit. The under-wired launches of operator-priv-profile and impact-analysis are the failure mode this step exists to prevent.
 
@@ -123,7 +123,7 @@ All security testing code and tools in this repository are used for:
 
 When developing security tools:
 - Assume all testing is against authorized targets with explicit permission
-- Implement safety controls (e.g., scope validation via `harnessing/5-validate/validate-findings/scope.py` and `harnessing/5-validate/validate-browser-finding/scripts/scope.py`)
+- Implement safety controls (e.g., scope validation via [`harnessing/5-validate/validate-findings/scope.py`](harnessing/5-validate/validate-findings/scope.py) and [`harnessing/5-validate/validate-browser-finding/scripts/scope.py`](harnessing/5-validate/validate-browser-finding/scripts/scope.py))
 - Avoid techniques designed solely for detection evasion in production environments
 
 ### Running validate-browser-finding
@@ -177,12 +177,12 @@ discrepancies that had accumulated over ~150 releases. Four conventions,
 three of them mechanically enforced, keep that from recurring:
 
 - **Skill changes update the reference in the same commit.** A staged
-  `harnessing/*/SKILL.md` change must ship with a staged `docs/skills.md`
+  `harnessing/*/SKILL.md` change must ship with a staged [`docs/skills.md`](docs/skills.md)
   update (alignment rule **A13**, pre-commit). Genuinely doc-irrelevant
   changes (typos, comments) are waived with
   `SKILLS_DOC_WAIVER=<reason> git commit ...`.
 - **Enum lists live in one place.** Docs must not restate schema enums —
-  link `docs/report-structure.md` or the schema. A doc line that names an
+  link [`docs/report-structure.md`](docs/report-structure.md) or the schema. A doc line that names an
   enum-bearing field and quotes 3+ of its values but not all of them fails
   the doc gate (partial-enum check).
 - **Assessments are dated snapshots.** Any `docs/*assessment*.md`,
@@ -222,7 +222,7 @@ three of them mechanically enforced, keep that from recurring:
   `$TRAUST_CONFIG_HOME/safe-exec-profiles.yaml` (gate rule S10 blocks bare
   invocations). Headless agents additionally run under repo-config
   isolation — cwd outside the checkout, repo `.claude/`/`CLAUDE.md`
-  never loaded as config (rule S9). Full contract: docs/safe-exec.md
+  never loaded as config (rule S9). Full contract: [docs/safe-exec.md](docs/safe-exec.md)
 - Git commands on non-literal URLs set `GIT_ALLOW_PROTOCOL=https` and gate
   the URL to `^https://` (rule S3); runtime installs pin exact versions
   (rule S7); state/credential files live in per-user 0700 dirs, never

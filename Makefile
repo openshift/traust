@@ -1,10 +1,12 @@
 .PHONY: help install test doctor setup update-vuln-dbs build-image lint lint-fix hooks sync status bump $(BUMP_PARTS)
+.PHONY: skillsaw-lint skillsaw-fix skillsaw-badge
 
 PROFILE    ?= secure-code-audit
 CLI        := uv run python -m traust.cli.toolchain
 PYTHON     ?= python3
 RELEASE    := ./release.py
 BUMP_PARTS := patch minor major
+SKILLSAW_VERSION := 0.20.0
 
 help: ## Show targets
 	@grep -E '^[a-z][-a-z]+:.*## ' $(MAKEFILE_LIST) | \
@@ -38,6 +40,15 @@ lint: ## ruff check + format --check
 lint-fix: ## ruff --fix + format
 	uv run ruff check --fix .
 	uv run ruff format .
+
+skillsaw-badge: ## Regenerate the committed skillsaw grade badge (Podman)
+	podman run --rm -v "$(CURDIR):/workspace:Z" ghcr.io/stbenjam/skillsaw:v$(SKILLSAW_VERSION) badge
+
+skillsaw-lint: skillsaw-badge ## Lint agent context with version-pinned skillsaw (Podman)
+	podman run --rm -v "$(CURDIR):/workspace:Z" ghcr.io/stbenjam/skillsaw:v$(SKILLSAW_VERSION) --strict
+
+skillsaw-fix: ## Apply safe skillsaw autofixes (Podman)
+	podman run --rm -v "$(CURDIR):/workspace:Z" ghcr.io/stbenjam/skillsaw:v$(SKILLSAW_VERSION) fix
 
 hooks: ## Enable .githooks for this clone
 	git config core.hooksPath .githooks

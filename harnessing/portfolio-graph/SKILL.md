@@ -42,8 +42,9 @@ which repos declare and depend on which Go modules (with versions,
 direct/indirect, and internal-library marking), joined to the product
 spine so dependency questions resolve to shipping products.
 
-Design, layer roadmap, and per-layer dependencies:
-[`progress-tracker/plans/portfolio-graph-plan.md`](../../../progress-tracker/plans/portfolio-graph-plan.md).
+Design, layer roadmap, and per-layer dependencies are recorded in
+`plans/portfolio-graph-plan.md` under the configured `progress-tracker` root
+(an external workspace artifact, not bundled with this skill).
 **L1 is multi-ecosystem**: Go (`go.mod`) plus npm, PyPI, Maven, Cargo,
 RubyGems, and NuGet manifests (python3 -m traust.cli portfolio parsers), language-gated
 per repo against a `gh-languages` cache. Non-Go package nodes are namespaced
@@ -222,7 +223,8 @@ Ref semantics: `depends_on` edges (and the graph's PQC/isolation repo
 attrs) describe **default-branch (HEAD) posture**; `depends_on_ref`
 edges exist only for branches you explicitly enriched, and per-ref
 PQC/isolation facts are a separately-costed decision
-([branch-awareness plan, Phase 3](../../../progress-tracker/plans/branch-awareness-plan.md)).
+(Phase 3 of `plans/branch-awareness-plan.md` under the configured
+`progress-tracker` root).
 
 Enrichment keys survive rebuilds: repo-node attrs stamped **after** the
 spine by a later step — currently the pqc backfeed's `$.pqc`

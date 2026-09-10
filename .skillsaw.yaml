@@ -1,0 +1,670 @@
+# skillsaw configuration
+# https://github.com/stbenjam/skillsaw
+
+version: "0.20.0"
+
+rules:
+
+  # Agent Plugins plugin.json and skills location must conform to a supported schema
+  agent-plugin-json-valid:
+    enabled: auto
+    severity: error
+
+  # Agent Plugins mcp.json must conform to a supported schema and semantics
+  agent-plugin-mcp-valid:
+    enabled: auto
+    severity: error
+    # additional-placeholders: []
+
+  # Plugins must also be available as vendor-neutral Agent Plugins v1 packages, with shared manifest metadata in sync
+  agent-plugin-required:
+    enabled: false
+    severity: warning
+
+  # Skill description should be meaningful and within length limits
+  agentskill-description:
+    enabled: auto
+    severity: warning
+    # max_length: 1024
+
+  # Validate evals/evals.json format when present
+  agentskill-evals:
+    enabled: auto
+    severity: warning
+
+  # Require evals/evals.json for each skill (opt-in)
+  agentskill-evals-required:
+    enabled: false
+    severity: warning
+
+  # Skill name must be lowercase letters, numbers, and hyphens and match directory name
+  agentskill-name:
+    enabled: auto
+    severity: error
+
+  # Update stale skill name references after a rename
+  agentskill-rename-refs:
+    enabled: auto
+    severity: warning
+    # autofix-min-segments: 2
+
+  # Skill directories should only contain recognized subdirectories (stricter than spec)
+  agentskill-structure:
+    enabled: false
+    severity: warning
+    # allowed_dirs:
+    #   - assets
+    #   - evals
+    #   - references
+    #   - scripts
+
+  # Every bundled skill file should be referenced from SKILL.md, directly or transitively
+  agentskill-unreferenced-files:
+    enabled: auto
+    severity: warning
+    # directory_mention_covers: true
+    # exclude: []
+    # collapse_directory_threshold: 5
+
+  # SKILL.md must have valid frontmatter with name and description
+  agentskill-valid:
+    enabled: auto
+    severity: error
+    # required-fields: []
+    # required-metadata: []
+
+  # Antigravity registry files must decode their paths and filters correctly
+  antigravity-config-json-valid:
+    enabled: false
+    severity: error
+
+  # hooks.json must use Antigravity's hook events, handler types and fields
+  antigravity-hooks-valid:
+    enabled: auto
+    severity: error
+    # extra-events: []
+
+  # mcp_config.json must parse and declare servers Antigravity can load
+  antigravity-mcp-valid:
+    enabled: auto
+    severity: error
+    # extra-auth-provider-types: []
+
+  # plugin.json must parse as an Antigravity manifest with correctly typed fields
+  antigravity-plugin-json-valid:
+    enabled: auto
+    severity: error
+
+  # .apm/ directory must contain a recognized primitive subdirectory with valid structure
+  apm-structure-valid:
+    enabled: auto
+    severity: warning
+
+  # apm.yml must exist with valid YAML and required fields (name, version)
+  apm-yaml-valid:
+    enabled: auto
+    severity: error
+
+  # Agent files must have valid frontmatter with name and description
+  claude-agent-frontmatter:
+    enabled: true
+    severity: error
+
+  # Command files must have valid frontmatter with description
+  claude-command-frontmatter:
+    enabled: true
+    severity: error
+
+  # Command Name section should be 'plugin-name:command-name'
+  claude-command-name-format:
+    enabled: false
+    severity: warning
+
+  # Command files should use kebab-case naming
+  claude-command-naming:
+    enabled: true
+    severity: warning
+
+  # Command files should have Name, Synopsis, Description, and Implementation sections
+  claude-command-sections:
+    enabled: false
+    severity: warning
+
+  # Claude Code hooks.json must be valid JSON with proper hook configuration structure
+  claude-hooks-valid:
+    enabled: true
+    severity: error
+
+  # Marketplace.json must be valid JSON with required fields
+  claude-marketplace-json-valid:
+    enabled: auto
+    severity: error
+
+  # Plugins must be registered in marketplace.json
+  claude-marketplace-registration:
+    enabled: auto
+    severity: error
+
+  # CLAUDE.md next to an AGENTS.md should import it so both assistants read one source of truth
+  claude-md-agents-import:
+    enabled: auto
+    severity: info
+    # allow-extra: true
+    # ignore-generated: true
+
+  # Plugin must have .claude-plugin/plugin.json
+  claude-plugin-json-required:
+    enabled: auto
+    severity: error
+
+  # plugin.json must be valid JSON with required fields
+  claude-plugin-json-valid:
+    enabled: auto
+    severity: error
+    # recommended-fields:
+    #   - description
+    #   - version
+    #   - author
+
+  # Plugin names should use kebab-case
+  claude-plugin-naming:
+    enabled: auto
+    severity: warning
+
+  # Plugin should have a README.md file
+  claude-plugin-readme:
+    enabled: auto
+    severity: warning
+
+  # .claude/rules/ files must be markdown with valid optional paths frontmatter
+  claude-rules-valid:
+    enabled: auto
+    severity: error
+
+  # Flags settings keys that execute arbitrary commands (apiKeyHelper, awsAuthRefresh, awsCredentialExport, gcpAuthRefresh, otelHeadersHelper) and dangerous env vars (LD_PRELOAD, NODE_OPTIONS, proxy settings, GIT_SSH_COMMAND, etc.)
+  claude-settings-dangerous:
+    enabled: auto
+    severity: error
+    # allow_command_exec_keys: []
+    # allow_env_vars: []
+
+  # .coderabbit.yaml keys and enums should match the CodeRabbit schema
+  coderabbit-schema-valid:
+    enabled: auto
+    severity: warning
+
+  # .coderabbit.yaml must be valid YAML
+  coderabbit-yaml-valid:
+    enabled: auto
+    severity: error
+
+  # Codex hooks files must use Codex's hook events, handler types, and fields
+  codex-hooks-valid:
+    enabled: auto
+    severity: error
+    # extra-events: []
+    # extra-fields: []
+    # allow-both-files: false
+
+  # .agents/plugins/marketplace.json must be valid JSON with required fields
+  codex-marketplace-json-valid:
+    enabled: auto
+    severity: error
+    # installation-values:
+    #   - AVAILABLE
+    #   - INSTALLED_BY_DEFAULT
+    #   - NOT_AVAILABLE
+    # authentication-values:
+    #   - ON_INSTALL
+    #   - ON_USE
+
+  # Codex plugins must be registered in .agents/plugins/marketplace.json
+  codex-marketplace-registration:
+    enabled: auto
+    severity: error
+
+  # Validate skill openai.yaml and catalog-compatible plugin metadata
+  codex-openai-metadata:
+    enabled: auto
+    severity: error
+
+  # .codex-plugin/plugin.json must be valid JSON with required fields
+  codex-plugin-json-valid:
+    enabled: auto
+    severity: error
+    # recommended-fields:
+    #   - version
+    #   - description
+    # check-paths-exist: true
+
+  # Only plugin.json belongs in .codex-plugin/
+  codex-plugin-structure:
+    enabled: auto
+    severity: warning
+
+  # Detect banned or deprecated model names, APIs, and custom patterns
+  content-banned-references:
+    enabled: auto
+    severity: warning
+    # banned: []
+    # skip-builtins: false
+    # regex-timeout: 2.0
+    # report-migrations: false
+
+  # Detect markdown links where the target file does not exist
+  content-broken-internal-reference:
+    enabled: auto
+    severity: warning
+
+  # Check that instruction files are organized into cognitive chunks with headings
+  content-cognitive-chunks:
+    enabled: auto
+    severity: info
+
+  # Detect likely contradictions within instruction files using keyword-pair heuristics
+  content-contradiction:
+    enabled: auto
+    severity: warning
+
+  # Skill and agent descriptions should guide routing; command descriptions should clearly explain their purpose
+  content-description-routing:
+    enabled: auto
+    severity: warning
+    # require-trigger-phrasing: true
+    # flag-name-restatement: true
+    # check-user-only-skills: false
+
+  # Detect potential API keys, tokens, and passwords in instruction files
+  content-embedded-secrets:
+    enabled: auto
+    severity: error
+    # entropy-threshold: 3.5
+    # additional-placeholders: []
+
+  # Detect emphasis inflation: too many ALWAYS/NEVER/MUST/IMPORTANT directives per file
+  content-emphasis-density:
+    enabled: auto
+    severity: warning
+    # max-ratio: 0.2
+    # min-emphasized: 5
+
+  # Detect instructions that should be automated as hooks instead of prose instructions
+  content-hook-candidate:
+    enabled: auto
+    severity: info
+
+  # Detect inconsistent terminology across instruction files (e.g., mixing 'directory' and 'folder')
+  content-inconsistent-terminology:
+    enabled: auto
+    severity: info
+    # groups: {}
+
+  # Detect consecutive code-block examples that all invoke the same tool
+  content-inline-tool-examples:
+    enabled: false
+    severity: info
+    # min-consecutive: 3
+    # max-lines-between: 2
+
+  # Check if instruction count in a file exceeds LLM instruction budget (~150)
+  content-instruction-budget:
+    enabled: auto
+    severity: warning
+
+  # Detect near-duplicate sections that have drifted apart across instruction files
+  content-instruction-drift:
+    enabled: auto
+    severity: info
+    # similarity-threshold: 0.8
+    # min-section-words: 40
+    # ignore-generated: true
+    # similarity-max-sections: 400
+
+  # Detect fully-qualified MCP tool names in portable prose that should use the short tool name
+  content-mcp-tool-name:
+    enabled: false
+    severity: warning
+    # allow: []
+
+  # Detect open-ended loop instructions (keep monitoring, poll, retry) without a stopping condition
+  content-missing-stop-condition:
+    enabled: false
+    severity: warning
+    # extra-loop-patterns: []
+    # extra-terminator-patterns: []
+
+  # Detect prohibitions without a positive alternative (agent has no path forward)
+  content-negative-only:
+    enabled: auto
+    severity: info
+
+  # Detect TODO markers, bracket placeholders, and unfilled template text
+  content-placeholder-text:
+    enabled: auto
+    severity: warning
+
+  # Large skills and instruction files should use progressive disclosure: split detail into referenced files that load on demand
+  # Disabled by project choice: retain complete security procedures in each skill.
+  content-progressive-disclosure:
+    enabled: false
+    severity: warning
+    # limits:
+    #   skill: 6000
+    #   claude-md: 6000
+    #   agents-md: 6000
+    #   gemini-md: 6000
+    #   qwen-md: 6000
+    #   instruction: 4000
+    #   memory: 4000
+
+  # Detect instructions that duplicate .editorconfig, ESLint, Prettier, or tsconfig settings
+  content-redundant-with-tooling:
+    enabled: auto
+    severity: warning
+
+  # Detect the same directive stated more than once within a file
+  content-repeated-directive:
+    enabled: auto
+    severity: info
+    # similarity-threshold: 0.85
+    # min-directive-words: 4
+    # min-line-distance: 4
+    # similarity-max-directives: 1500
+    # extra-clusters: {}
+
+  # Warn about markdown sections longer than ~500 tokens
+  content-section-length:
+    enabled: auto
+    severity: info
+    # max-tokens: 500
+
+  # Detect tautological instructions that the model already follows by default
+  content-tautological:
+    enabled: auto
+    severity: info
+
+  # Detect code fences opened but never closed, hiding the rest of the file from content rules
+  content-unclosed-fence:
+    enabled: auto
+    severity: warning
+
+  # Detect bare path-like strings not wrapped in markdown link syntax
+  content-unlinked-internal-reference:
+    enabled: auto
+    severity: info
+    # patterns:
+    #   - ./**/*.*
+    #   - references/**/*.md
+
+  # Detect hedging, vague, and non-actionable language in instruction files
+  content-weak-language:
+    enabled: auto
+    severity: info
+
+  # Warn when instruction or config files exceed recommended token limits
+  # Disabled by project choice: security workflows retain their full context.
+  context-budget:
+    enabled: false
+    severity: warning
+    # limits:
+    #   agents-md:
+    #     warn: 6000
+    #     error: 12000
+    #   claude-md:
+    #     warn: 6000
+    #     error: 12000
+    #   gemini-md:
+    #     warn: 6000
+    #     error: 12000
+    #   qwen-md:
+    #     warn: 6000
+    #     error: 12000
+    #   instruction:
+    #     warn: 4000
+    #     error: 8000
+    #   memory:
+    #     warn: 4000
+    #     error: 8000
+    #   skill:
+    #     warn: 3000
+    #     error: 6000
+    #   command:
+    #     warn: 2000
+    #     error: 4000
+    #   agent:
+    #     warn: 2000
+    #     error: 4000
+    #   rule:
+    #     warn: 2000
+    #     error: 4000
+    #   skill-description:
+    #     warn: 200
+    #     error: 500
+    #   command-description:
+    #     warn: 200
+    #     error: 500
+
+  # Copilot and VS Code custom agents must use target-compatible frontmatter
+  copilot-agent-valid:
+    enabled: auto
+    severity: error
+    # report-unknown-fields: false
+
+  # .cursor/hooks.json must declare version 1 and known hook events with commands
+  cursor-hooks-valid:
+    enabled: auto
+    severity: error
+    # extra-events: []
+
+  # Cursor .mdc rules must have frontmatter that lets the rule activate
+  cursor-rules-valid:
+    enabled: auto
+    severity: error
+
+  # Devin workspace rules must have valid activation frontmatter and fit its size limit
+  devin-rules-valid:
+    enabled: auto
+    severity: error
+    # max-characters: 12000
+
+  # Devin-native SKILL.md frontmatter must use Devin's documented field shapes
+  devin-skill-valid:
+    enabled: auto
+    severity: error
+
+  # .grok/agents/*.md must declare a name and a description in frontmatter
+  grok-agent-valid:
+    enabled: auto
+    severity: error
+
+  # .grok/config.toml must only carry settings a project file contributes
+  grok-config-project-scope:
+    enabled: auto
+    severity: warning
+    # extra-tables: []
+
+  # .grok/config.toml must parse, and its servers and permissions must load
+  grok-config-valid:
+    enabled: auto
+    severity: error
+
+  # .grok/hooks/*.json must use Grok's hook events, handler types and fields
+  grok-hooks-valid:
+    enabled: auto
+    severity: error
+    # extra-events: []
+
+  # plugin-index.json must agree with its marketplace catalog
+  grok-marketplace-index-parity:
+    enabled: auto
+    severity: warning
+    # check-components: true
+
+  # .grok-plugin/marketplace.json must be valid JSON with installable entries
+  grok-marketplace-json-valid:
+    enabled: auto
+    severity: error
+    # require-sha: true
+
+  # .grok-plugin/plugin.json must be valid JSON with a name Grok's loader accepts
+  grok-plugin-json-valid:
+    enabled: auto
+    severity: error
+    # check-paths-exist: true
+    # check-overrides: true
+
+  # A Grok plugin directory needs a manifest or a component Grok installs
+  grok-plugin-structure:
+    enabled: auto
+    severity: warning
+    # check-installable: true
+
+  # Flags hook commands that chain a download into execution (curl|sh), obfuscate their payload (eval/base64), or perform network requests
+  hooks-dangerous:
+    enabled: auto
+    severity: error
+    # allowlist: []
+
+  # All hooks are prohibited unless explicitly allowlisted; catches new or unexpected hooks added to a project
+  hooks-prohibited:
+    enabled: false
+    severity: error
+    # allowlist: []
+
+  # Instruction files (AGENTS.md and tool-compatible alternatives) must be valid and non-empty
+  instruction-file-valid:
+    enabled: auto
+    severity: warning
+
+  # Import references (@path) in AGENTS.md, CLAUDE.md, GEMINI.md and QWEN.md must point to existing files
+  instruction-imports-valid:
+    enabled: auto
+    severity: warning
+
+  # Repository should not enable non-allowlisted MCP servers
+  mcp-prohibited:
+    enabled: false
+    severity: error
+    # allowlist: []
+
+  # Local npm package.json mcpName must match MCP Registry server.json name
+  mcp-registry-npm-name-match:
+    enabled: auto
+    severity: error
+
+  # MCP Registry server.json must conform to a supported schema and its enums
+  mcp-registry-server-json-valid:
+    enabled: auto
+    severity: error
+    # registry-types: []
+
+  # MCP Registry server versions should use strict Semantic Versioning 2.0.0
+  mcp-registry-version-semver:
+    enabled: auto
+    severity: warning
+
+  # MCP configuration must use valid syntax and a host-readable server structure
+  mcp-valid-json:
+    enabled: true
+    severity: error
+    # additional-placeholders: []
+
+  # .muse/hooks.json must use Muse's events, matcher groups and handler fields
+  muse-hooks-valid:
+    enabled: false
+    severity: error
+    # extra-events: []
+    # extra-handler-fields: []
+    # extra-group-keys: []
+
+  # Validate metadata.openclaw fields against the OpenClaw spec
+  openclaw-metadata:
+    enabled: auto
+    severity: warning
+
+  # opencode.json and opencode.jsonc must parse and use keys and MCP server shapes OpenCode reads
+  opencode-config-valid:
+    enabled: auto
+    severity: error
+    # extra-keys: []
+
+  # Require specific assertion types in all promptfoo eval tests
+  promptfoo-assertions:
+    enabled: false
+    severity: warning
+    # required-types: []
+    # threshold-constraints: {}
+
+  # Require specific metadata keys on all promptfoo eval tests
+  promptfoo-metadata:
+    enabled: false
+    severity: warning
+    # required-keys: []
+
+  # Validate promptfoo eval YAML config structure and file references
+  promptfoo-valid:
+    enabled: auto
+    severity: error
+
+  # Require an allowlist for dynamic context commands that execute shell code while loading agent context
+  security-dynamic-context:
+    enabled: auto
+    severity: warning
+    # allowlist: []
+
+  # Detect long high-entropy base64/hex blobs that can smuggle encoded payloads
+  security-encoded-payload:
+    enabled: auto
+    severity: warning
+    # min-length: 120
+    # entropy-threshold: 4.5
+    # hex-entropy-threshold: 3.4
+    # hex-ascii-ratio: 0.9
+
+  # Detect agent directives hidden in HTML comments or Markdown link labels invisible to human review
+  security-hidden-instructions:
+    enabled: auto
+    severity: warning
+    # additional-allowed-prefixes: []
+
+  # Detect invisible or reordering unicode characters (ASCII smuggling, Trojan Source) in agent context
+  security-invisible-unicode:
+    enabled: auto
+    severity: error
+    # allow-bidi-controls: false
+    # allowed-codepoints: []
+
+  # skills-lock.json files must be valid and portable project lockfiles
+  skills-lock-valid:
+    enabled: auto
+    severity: error
+    # extra-source-types: []
+
+# Load custom rules from these files
+custom-rules: []
+
+# Rule plugins (pip-installed packages that add rules)
+# https://skillsaw.org/plugins/
+# plugins:
+#     enabled: true
+#     disable: ["some-plugin-name"]
+
+# Exclude patterns (glob format)
+# Use exclude: [] to disable all excludes including defaults
+exclude:
+    # - "**/template/**"
+    # - "**/templates/**"
+    # - "**/_template/**"
+    # - "**/__pycache__/**"
+
+# Additional markdown files to run content rules on (glob format)
+content-paths: []
+
+# Report findings in external content (autofix never rewrites it)
+lint-external-content: true
+
+# Treat warnings as errors
+strict: false
+
+# Fail on violations at this severity or above: error, warning, info
+fail-on: error

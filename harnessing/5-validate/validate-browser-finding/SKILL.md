@@ -1,9 +1,9 @@
 ---
 name: validate-browser-finding
 description: >-
-  Run browser-based security validations (CSRF, XSS, clickjacking) against
-  containerized labs using Playwright. Separate from validate-findings which
-  targets K8s operators/containers.
+  Use when validating browser-exploitable findings such as CSRF, XSS, or
+  clickjacking against authorized containerized labs with Playwright. Test
+  progressively through authentication, middleware, and ingress defenses.
 metadata:
   harness.tier: "primary"
 ---
