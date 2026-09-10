@@ -125,13 +125,37 @@ def _optional_config(name: str) -> dict:
     return data if isinstance(data, dict) else {}
 
 
+def _normalise_host(value: str) -> str:
+    """``https://gitlab.example.com/group/`` → ``gitlab.example.com``."""
+    h = str(value).strip().lower()
+    h = h.split("://", 1)[-1]
+    h = h.split("/", 1)[0]
+    return h.strip(". ")
+
+
+def _private_forge_hosts(cfg: dict) -> tuple[str, ...]:
+    raw = os.environ.get("HARNESS_PRIVATE_FORGE_HOSTS")
+    if raw and raw.strip():
+        values: list = raw.split(",")
+    else:
+        values = cfg.get("private_forge_hosts") or []
+        if isinstance(values, str):
+            values = values.split(",")
+        elif not isinstance(values, list):
+            values = []
+    return tuple(dict.fromkeys(h for h in (_normalise_host(v) for v in values) if h))
+
+
 def remediation_settings() -> dict:
-    """remediate-finding's deployment settings — ``fork_org`` and
-    ``naming_prefix`` — from ``remediation.yaml`` in the config home, each
-    overridable by ``HARNESS_FORK_ORG`` / ``REMEDIATION_PREFIX`` in the
+    """remediate-finding's deployment settings — ``fork_org``,
+    ``naming_prefix`` and ``private_forge_hosts`` — from ``remediation.yaml``
+    in the config home, each overridable by ``HARNESS_FORK_ORG`` /
+    ``REMEDIATION_PREFIX`` / ``HARNESS_PRIVATE_FORGE_HOSTS`` in the
     environment. ``fork_org`` has no shipped default: the private mirror
     organisation is the adopter's (decision D5, 2026-09-07); callers fail loud
     when it is unset. ``naming_prefix`` defaults to ``traust``.
+    ``private_forge_hosts`` defaults to empty — naming an organisation's
+    internal forge is deployment config, never a shipped constant.
     """
     cfg = _optional_config("remediation.yaml")
     fork_org = os.environ.get("HARNESS_FORK_ORG") or str(cfg.get("fork_org") or "").strip()
@@ -140,7 +164,20 @@ def remediation_settings() -> dict:
     )
     if fork_org in ("", "example-org"):
         fork_org = ""
-    return {"fork_org": fork_org, "naming_prefix": prefix}
+    return {
+        "fork_org": fork_org,
+        "naming_prefix": prefix,
+        "private_forge_hosts": _private_forge_hosts(cfg),
+    }
+
+
+def private_forge_hosts() -> tuple[str, ...]:
+    """Hosts of self-hosted forges whose repositories ARE their own downstream
+    fork — remediation lands in place rather than in a mirror. Empty unless the
+    deployment lists them in ``remediation.yaml``; see
+    ``config/remediation.example.yaml``.
+    """
+    return remediation_settings()["private_forge_hosts"]
 
 
 def require_fork_org() -> str:
