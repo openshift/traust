@@ -84,6 +84,7 @@ from traust.context import (
     findings_db,
     load_engine,
 )
+from traust.lib.event_time import recorded_at_arg
 
 SHA_RX = re.compile(r"\b([0-9a-f]{7,40})\b")
 SLUG_RX = re.compile(r"^[A-Z][A-Z0-9_]{0,23}$")
@@ -563,7 +564,7 @@ def main(argv=None) -> int:
         help="also file likely_affected repos (default: affected only)",
     )
     ap.add_argument("--limit", type=int, default=None)
-    ap.add_argument("--recorded-at", default=None)
+    ap.add_argument("--recorded-at", type=recorded_at_arg, default=None)
     ap.add_argument("--no-rebuild", action="store_true")
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args(argv)

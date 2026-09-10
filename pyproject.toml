@@ -7,13 +7,27 @@ name = "traust"
 # version must equal the VERSION file — check_docs_consistency.py
 # version-sync check fails the pre-push when they drift (and fails
 # closed if this field is removed)
-version = "0.1.0"
+version = "0.1.1"
 license = "Apache-2.0"
 description = "AI agent tooling for automated security audits of Red Hat Hybrid Platforms source code"
 requires-python = ">=3.11"
 dependencies = [
-    "traust-engine>=0.1.0",
-    "traust-contracts>=0.1.0",
+    "traust-engine>=0.1.1",
+    # TODO: this should not be here. Declared only because a handful of call
+    # sites import traust_ledger DIRECTLY instead of going through
+    # traust_engine.ledger.LedgerService, which is the intended seam:
+    #   cli/countersign.py            traust_ledger.auth.directory,
+    #                                 traust_ledger.cli.identity.actor
+    #   cli/check_drift.py            traust_ledger.api.integrity
+    #   harnessing/3-audit/compliance-check/scripts/compliance_scope_intake.py
+    # Until now it resolved only because traust-engine happens to pull the
+    # ledger in transitively — an undeclared dependency that would break at
+    # import time (countersign, compliance-check) the moment engine stopped
+    # depending on it. Some more restructuring will help alleviate this pain later.
+    # Route these through LedgerService and drop this line. countersign.py is
+    # itself a candidate for removal, which retires most of the callers.
+    "traust-ledger>=0.1.1",
+    "traust-contracts>=0.1.1",
     "jsonschema",
     "referencing",
     "pyyaml",
@@ -38,9 +52,9 @@ traust = "traust.cli.__main__:main"
 dev = ["ruff>=0.6", "pytest-xdist>=3"]
 
 [tool.uv.sources]
-traust-contracts = { git = "https://github.com/openshift/traust-contracts.git", tag = "v0.1.0" }
-traust-engine = { git = "https://github.com/openshift/traust-engine.git", tag = "v0.1.0" }
-traust-ledger = { git = "https://github.com/openshift/traust-ledger.git", tag = "v0.1.0" }
+traust-contracts = { git = "https://github.com/openshift/traust-contracts.git", tag = "v0.1.1" }
+traust-engine = { git = "https://github.com/openshift/traust-engine.git", tag = "v0.1.1" }
+traust-ledger = { git = "https://github.com/openshift/traust-ledger.git", tag = "v0.1.1" }
 
 # Multi-skill CLIs live under src/traust/; harnessing/<skill>/ for single-skill
 # scripts. Install for deps + importable path helpers.

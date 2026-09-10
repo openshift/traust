@@ -42,6 +42,15 @@ _SCRIPTS_SUBPATH_RX = re.compile(
 _HARNESS_SKILL_SCRIPTS_RX = re.compile(
     r"harnessing/(?:[a-z0-9-]+/){1,2}scripts/[A-Za-z0-9_./-]+\.(?:py|sh)\b"
 )
+# Skill-base placeholders resolve at run time, so the path cannot be checked on
+# disk. Spelling is matched loosely on purpose: docs use <skill-base>, and
+# pinning one variant silently reclassified correct references as stale.
+_SKILL_BASE_SCRIPTS_RX = re.compile(
+    r"(?:\.claude/skills/|\.crush/skills/"
+    r"|<skill[-_](?:dir|base)>/scripts/"
+    r"|\$SKILL_(?:DIR|BASE)/scripts/)",
+    re.IGNORECASE,
+)
 _BARE_ALLOW_RX = re.compile(r"Bash\((python3?) \*([A-Za-z0-9_]+)\.py:")
 _SKILLDIR_MISSING_SCRIPTS_RX = re.compile(r"\$SKILL_DIR/([a-z0-9-]+)/([A-Za-z0-9_]+\.py)")
 # Corpus / rule-pack examples cite target-repo paths, not harness layout.
@@ -80,8 +89,7 @@ def _is_harness_skill_scripts_path(line: str, start: int, end: int) -> bool:
     chunk = line[window_start:end]
     if _HARNESS_SKILL_SCRIPTS_RX.search(chunk):
         return True
-    pattern = r"(?:\.claude/skills/|\.crush/skills/|<skill_dir>/scripts/|\$SKILL_DIR/scripts/)"
-    return bool(re.search(pattern, chunk + line[start:end]))
+    return bool(_SKILL_BASE_SCRIPTS_RX.search(chunk + line[start:end]))
 
 
 def scripts_path_failures(repo: Path = REPO) -> list[str]:

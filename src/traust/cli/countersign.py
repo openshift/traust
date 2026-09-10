@@ -104,6 +104,7 @@ from traust.context import (
     findings_tree_dir,
     load_engine,
 )
+from traust.lib.event_time import recorded_at_arg
 
 DECISIONS = (
     "false_positive",
@@ -485,7 +486,7 @@ def render_card(item: dict, idx: int, total: int, base: Path) -> str:
     actor = ref["source"]["actor"]
     lines.append(
         f"**THE REFUTATION** ({actor.get('identity', 'machine')} · "
-        f"{ref.get('occurred_at', ref['recorded_at'])[:10]} · "
+        f"{(ref.get('occurred_at') or ref['recorded_at'])[:10]} · "
         f"votes {vote_s}"
         + (f" · confidence {tri.get('confidence')}" if tri.get("confidence") is not None else "")
         + (f" · exclusion rule {tri.get('exclusion_rule')}" if tri.get("exclusion_rule") else "")
@@ -1284,7 +1285,7 @@ def main(argv=None) -> int:
         "--identity",
         help="optional: must match the ledger token holder (the token is the identity)",
     )
-    a.add_argument("--recorded-at", help="override timestamp (ISO 8601)")
+    a.add_argument("--recorded-at", type=recorded_at_arg, help="override timestamp (RFC 3339)")
     a.add_argument(
         "--root",
         help="findings root: every layer path in the "
@@ -1322,7 +1323,7 @@ def main(argv=None) -> int:
         help="optional: must match the ledger token holder (the token is the identity)",
     )
     r.add_argument("--rationale")
-    r.add_argument("--recorded-at")
+    r.add_argument("--recorded-at", type=recorded_at_arg)
     r.add_argument(
         "--root",
         help="findings root: --layer must resolve under this directory "

@@ -280,7 +280,7 @@ def derive_disposition(finding, events, generated_at):
         disposition["severity_override"] = {
             "severity": last_sev["disposition"]["severity"],
             "by": last_sev["source"]["actor"].get("identity", "?"),
-            "at": last_sev.get("occurred_at", last_sev["recorded_at"]),
+            "at": last_sev.get("occurred_at") or last_sev["recorded_at"],
             **({"rationale": last_sev["rationale"]} if last_sev.get("rationale") else {}),
         }
     if conflict:
