@@ -67,6 +67,13 @@ Rules:
                       (`Bash(python3 *<script>.py:*)`). Pre-existing
                       harness-internal tooling skills are grandfathered
                       via printed exemptions; new entries fail.
+  A14 anchored-script An allowed-tools interpreter grant may not
+                      start its script pattern with a bare `*` — any
+                      path ending in that filename matches, including
+                      one planted in a hostile checkout. Anchor to the
+                      harness tree (`*traust/scripts/<name>.py`). A11
+                      catches the unscoped interpreter; A14 catches the
+                      unanchored script.
   A17 locations-note  A SKILL.md that names `analysis-results/` or
                       `progress-tracker/` carries the note that those are
                       the default layout resolved through `locations.yaml`
@@ -77,6 +84,16 @@ Rules:
                       _write_layer_file or a direct write_text — a direct
                       write bypasses the Backend.mutate lock that keeps
                       mutate+stamp+sign atomic.
+  A18 composition-root Engine and config-home resolution happen ONLY in
+                      `src/traust/context.py`, the app's single composition
+                      root. `HarnessEngine.load()`/`HarnessEngine(...)`
+                      elsewhere re-resolves config on its own terms and
+                      loses the fail-loud `SystemExit(2)` contract that 93
+                      call sites depend on; a direct
+                      `deployment_config_dir()` bypasses `traust.paths`.
+                      Importing HarnessEngine for a type annotation is
+                      fine — this matches the CALL. Zero violations at
+                      landing: a ratchet, not a cleanup.
   A13 skills-doc-sync A staged harnessing/*/SKILL.md change must be
                       accompanied by a regenerated docs/skills.md, so
                       the skills reference cannot silently lag the skill
@@ -825,6 +842,18 @@ LAYER_WRITE_RE = re.compile(
 LAYER_PATH_HINT_RE = re.compile(r"findings-layer|LAYER_SUFFIX|_findings_layer")
 
 
+#: A18 — engine resolution. Matches the CALL, never the import: 8 modules import
+#: `HarnessEngine` purely to annotate a parameter, which is correct and must stay
+#: clean. `HarnessEngine(` catches construction that skips `load()` entirely.
+A18_ENGINE_CALL_RE = re.compile(r"\bHarnessEngine\s*(?:\.\s*load\s*)?\(")
+#: A18 — config-home resolution. `traust.paths` re-exports this symbol (an import
+#: and an `__all__` entry, neither a call), so the module list below allows it.
+A18_CONFIG_HOME_CALL_RE = re.compile(r"\bdeployment_config_dir\s*\(")
+#: The composition root itself, plus the sanctioned config-path resolver.
+A18_ENGINE_ROOTS = ("src/traust/context.py",)
+A18_CONFIG_HOME_ROOTS = ("src/traust/context.py", "src/traust/paths.py")
+
+
 _A17_TREES = ("analysis-results/", "progress-tracker/")
 _A17_MARK = "`locations.yaml`"
 
@@ -940,6 +969,67 @@ def a16_layer_write_boundary_failures(repo: Path = REPO, used: list | None = Non
     return failures
 
 
+def a18_composition_root_failures(repo: Path = REPO, used: list | None = None) -> list[str]:
+    """A18 — the engine is resolved in exactly one place.
+
+    `src/traust/context.py` is the app's single composition root: it calls
+    `HarnessEngine.load()` once, converts `DeploymentConfigMissing` into a
+    one-line `SystemExit(2)`, and hands the engine (or one ops namespace) to
+    its callers. 93 modules call `load_engine()` and 96 call
+    `add_config_home_arg()` — so every lane inherits the same config
+    precedence (CLI flag > AUDIT_RESULTS_ROOT > `locations.yaml`) and the same
+    fail-loud behaviour, pinned by `tests/test_context.py`.
+
+    A second caller re-resolves config on its own terms: it gets a traceback
+    instead of exit 2, or a different precedence, and the guarantee stops being
+    a guarantee. The invariant was stated in the module docstring from the
+    start and has held across all 93 sites by discipline alone — nothing
+    checked it. This rule is the ratchet, in the shape A16 established: it
+    lands at zero and exists so the 94th site fails the commit instead of
+    being noticed later.
+
+    Deliberately matches the CALL, not the import. `from traust_engine import
+    HarnessEngine` appears in 8 modules that only annotate a parameter with it;
+    banning the import would flag all 8 and get the rule waived.
+    """
+    used = used if used is not None else []
+    failures: list[str] = []
+    roots = [repo / "src" / "traust", repo / "harnessing"]
+    for root in roots:
+        if not root.is_dir():
+            continue
+        for path in sorted(root.rglob("*.py")):
+            rel = path.relative_to(repo).as_posix()
+            if "/tests/" in f"/{rel}" or path.name.startswith("test_"):
+                continue
+            if path.name == "check_skill_alignment.py":
+                continue  # this rule names the forbidden spellings to detect them
+            if _exempt("A18", rel, used):
+                continue
+            try:
+                lines = path.read_text(encoding="utf-8", errors="ignore").splitlines()
+            except OSError:
+                continue
+            for n, line in enumerate(lines, 1):
+                if line.lstrip().startswith("#"):
+                    continue
+                if rel not in A18_ENGINE_ROOTS and A18_ENGINE_CALL_RE.search(line):
+                    failures.append(
+                        f"A18: {rel}:{n} resolves the engine outside the composition "
+                        f"root — call `traust.context.load_engine()` so the "
+                        f"SystemExit(2) contract and config precedence stay in one "
+                        f"place (src/traust/context.py)"
+                    )
+                if rel not in A18_CONFIG_HOME_ROOTS and A18_CONFIG_HOME_CALL_RE.search(line):
+                    failures.append(
+                        f"A18: {rel}:{n} resolves the config home directly — go "
+                        f"through `config_path()` / `traust.paths`, which raises "
+                        f"DeploymentConfigMissing instead of falling back "
+                        f"(config/README.md)"
+                    )
+    return failures
+
+
 def a15_baseline_ownership_failures(repo: Path = REPO, used: list | None = None) -> list[str]:
     """Only the three secure*audit skills may write an audit baseline.
 
@@ -1015,6 +1105,7 @@ def alignment_failures(repo: Path = REPO, exemptions_used: list | None = None) -
     failures.extend(a16_layer_write_boundary_failures(repo, exemptions_used))
     failures.extend(a17_locations_note_failures(repo, exemptions_used))
     failures.extend(a15_baseline_ownership_failures(repo, exemptions_used))
+    failures.extend(a18_composition_root_failures(repo, exemptions_used))
     used = exemptions_used if exemptions_used is not None else []
     skills = skill_dirs(repo)
 
