@@ -49,10 +49,10 @@ providers:
     # cache_write ~1.25x input (5-min TTL; 1-hour TTL is ~2x).
     models:
       claude-mythos-5:        {tier: mythos-class, batch_eligible: true,  price_per_mtok_in: 10.0, price_per_mtok_out: 50.0}  # same rate card as claude-fable-5
-      claude-fable-5:         {tier: mythos-class, batch_eligible: true,  price_per_mtok_in: 10.0, price_per_mtok_out: 50.0}  # same rate card as claude-mythos-5; added 2026-07-28 so SCI's ratecard can consume the registry instead of hand-copying it (SCI PR #2 divergence)
+      claude-fable-5:         {tier: mythos-class, batch_eligible: true,  price_per_mtok_in: 10.0, price_per_mtok_out: 50.0}  # same rate card as claude-mythos-5; added 2026-07-28 so downstream rate-card consumers read the registry instead of hand-copying it
       claude-opus-5:          {tier: opus-class,   batch_eligible: true,  price_per_mtok_in: 5.0,  price_per_mtok_out: 25.0}  # corrected 2026-08-06 from 15/75 (stale Opus 4.1-era rate) to the published 5/25 — same bug already fixed for opus-4-8 below; verified against docs models overview. Overstated 2026-07 spend by ~$61K
       claude-opus-4-8:        {tier: opus-class,   batch_eligible: true,  price_per_mtok_in: 5.0,  price_per_mtok_out: 25.0}  # corrected from 15/75 (Opus 4.1-era rate) to published 5/25
-      claude-opus-4-6:        {tier: opus-class,   batch_eligible: true,  price_per_mtok_in: 5.0,  price_per_mtok_out: 25.0}  # not on the published rate card; empirically derived by SCI (test-pinned against a live CLI-reported $1.0016 session) — adopted 2026-07-28 to close the SCI ratecard split
+      claude-opus-4-6:        {tier: opus-class,   batch_eligible: true,  price_per_mtok_in: 5.0,  price_per_mtok_out: 25.0}  # not on the published rate card; empirically derived downstream (test-pinned against a live CLI-reported $1.0016 session) — adopted 2026-07-28 to close a rate-card split
       claude-sonnet-5:        {tier: sonnet-class, batch_eligible: true,  price_per_mtok_in: 3.0,  price_per_mtok_out: 15.0}
       claude-haiku-4-5-20251001: {tier: haiku-class, batch_eligible: true, price_per_mtok_in: 1.0, price_per_mtok_out: 5.0}
   # New vendors: data-handling + licensing intake FIRST (docs/

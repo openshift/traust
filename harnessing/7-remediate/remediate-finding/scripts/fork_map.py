@@ -14,6 +14,8 @@ Resolution order:
   3. Heuristic: ``https://github.com/<org>/<repo>`` →
      ``https://github.com/<fork_org>/<repo>``  (must already
      exist — this module never creates forks; that is ``ensure_fork.sh``'s job).
+  4. Heuristic: a repo on one of the deployment's own ``private_forge_hosts``
+     (remediation.yaml) is already the downstream fork — remediate in place.
 
 CLI:
   fork_map.py <upstream-url>            → JSON {fork_url, host, base_ref, …}
@@ -71,7 +73,7 @@ def default_fork_owner() -> str:
 class Fork:
     upstream_url: str
     fork_url: str
-    host: str = "github"  # github | gitlab | gitlab-cee | other
+    host: str = "github"  # github | private-forge | other
     visibility: str = "private"
     #: Branch in the fork to cut fix branches from.  ``__audited__`` is a
     #: sentinel meaning "use metadata.audited_commit from the manifest row"
@@ -102,7 +104,20 @@ FORKS: dict[str, Fork] = {}
 
 
 _GH = re.compile(r"^https://github\.com/(?P<org>[^/]+)/(?P<repo>[^/]+?)(?:\.git)?/?$")
-_GL = re.compile(r"^https://(?P<host>gitlab[^/]+)/(?P<org>[^/]+)/(?P<repo>[^/]+?)(?:\.git)?/?$")
+#: Host + path of any https repo URL — nested groups included, so a repo in a
+#: subgroup on a self-hosted forge still resolves.
+_HOST = re.compile(r"^https://(?P<host>[^/]+)/(?P<path>[^/].*)$")
+
+
+# Which forge hosts are the deployment's own is deployment config, not a
+# harness constant: a tool that ships an organisation's internal hostnames has
+# published them. Resolved lazily so importing this module never requires a
+# config home.
+def _is_private_forge(host: str) -> bool:
+    from traust.context import private_forge_hosts
+
+    h = host.strip().lower()
+    return any(h == p or h.endswith(f".{p}") for p in private_forge_hosts())
 
 
 def _norm(url: str) -> str:
@@ -147,13 +162,13 @@ def resolve(upstream_url: str) -> Fork:
             host="github",
             notes="heuristic — verify fork exists before use",
         )
-    if m := _GL.match(key):
-        host = "gitlab-cee" if "cee.redhat.com" in m["host"] else "gitlab"
-        # Internal GitLab repos ARE the downstream fork; remediate in-place.
+    if (m := _HOST.match(key)) and _is_private_forge(m["host"]):
+        # A repo on the deployment's own forge IS the downstream fork: remediate
+        # in place rather than mirroring it into a fork org.
         return Fork(
             upstream_url=key,
             fork_url=key,
-            host=host,
+            host="private-forge",
             visibility="internal",
             notes="private-forge repo — treated as its own downstream fork",
         )

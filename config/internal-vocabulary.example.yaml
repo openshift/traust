@@ -38,7 +38,9 @@ rules:
   - id: internal-host
     tier: block
     why: internal hostname
-    pattern: '\b[a-z0-9][a-z0-9.-]*\.(?:corp|internal)\.yourorg\.invalid\b'
+    # leading subdomain optional — a bare `internal.yourorg.invalid` in code or
+    # prose discloses exactly as much as the full host
+    pattern: '\b(?:[a-z0-9][a-z0-9.-]*\.)?(?:corp|internal)\.yourorg\.invalid\b'
 
   # Case-SIGNIFICANT: a Kerberos realm is uppercase by convention. Compiled
   # IGNORECASE this matches every lowercase occurrence of the domain and

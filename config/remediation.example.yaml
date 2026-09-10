@@ -10,5 +10,13 @@
 #   the control repo (<prefix>-control), fix branches (<prefix>/<id>/<slug>) and
 #   commit subjects. Change it only before the first batch; existing artefacts
 #   keep the prefix they were created with.
+# private_forge_hosts: hosts of Git forges you run yourself, whose repositories
+#   ARE the downstream fork — remediation lands in place instead of in a mirror
+#   under fork_org. Matched on the exact host or any subdomain of it; a bare
+#   hostname, or a URL to trim. Empty by default: naming your internal forge is
+#   deployment config, never something the harness ships. Override with
+#   HARNESS_PRIVATE_FORGE_HOSTS (comma-separated) in the environment.
 fork_org: example-org
 naming_prefix: traust
+private_forge_hosts: []
+#   - gitlab.example.internal

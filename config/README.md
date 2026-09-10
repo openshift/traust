@@ -22,7 +22,7 @@ ships a template for each such file:
 | Template here | Deployment file | Read by |
 |---|---|---|
 | `corpus-config.example.yaml` | `corpus-config.yaml` | `traust_engine.corpus.resolver`, `/census`, every dashboard |
-| `remediation.example.yaml` | `remediation.yaml` | `/remediate-finding` (private mirror org, naming prefix) — no shipped default for the org |
+| `remediation.example.yaml` | `remediation.yaml` | `/remediate-finding` (private mirror org, naming prefix, self-hosted forge hosts) — no shipped default for the org, and none for the forge hosts |
 | `campaign.example.yaml` | `campaign.yaml` | dashboards that cite a tracking reference (`/validation-fuzz-dashboard`, `/generate-team-report`) |
 | `product-definitions-map.example.yaml` | `product-definitions-map.yaml` | `traust_engine.registry.products`, `/assign-findings-owners`, `/sla-view` |
 | `budget-policy.example.yaml` | `budget-policy.yaml` | `traust_engine.metrics.spend`, rescan worklist, drain tranche |
