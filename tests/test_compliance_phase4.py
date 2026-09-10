@@ -17,9 +17,7 @@ from tests.compliance_paths import (
     compliance_skip_reason,
 )
 
-_CALIBRATION_SNAPSHOT = (
-    compliance_configs_dir() / "calibration" / "iac-inventory-calibration.json"
-)
+_CALIBRATION_SNAPSHOT = compliance_configs_dir() / "calibration" / "iac-inventory-calibration.json"
 
 pytestmark = pytest.mark.skipif(
     not compliance_configs_available() or not _CALIBRATION_SNAPSHOT.is_file(),

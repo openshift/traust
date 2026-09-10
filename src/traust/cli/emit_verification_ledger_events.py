@@ -52,6 +52,7 @@ from traust.context import (
     analysis_results_dir,
     load_engine,
 )
+from traust.lib.event_time import recorded_at_arg, report_occurred_at
 
 RATIONALE_CAP = 500
 
@@ -116,7 +117,7 @@ def build_events(
     """Return {events, skipped, counts}."""
     meta = report.get("metadata") or {}
     hv = str(meta.get("harness_version") or "0.0.0")
-    occurred_at = f"{meta.get('date', recorded_at[:10])}T00:00:00+00:00"
+    occurred_at = report_occurred_at(meta.get("date"), recorded_at)
     actor = {
         "kind": "machine",
         "identity": f"verify-remediation/{hv}",
@@ -304,7 +305,11 @@ def main(argv=None) -> int:
         default=None,
         help="the analysis-results checkout (default: configured analysis-results)",
     )
-    parser.add_argument("--recorded-at", help="override the append timestamp (ISO 8601)")
+    parser.add_argument(
+        "--recorded-at",
+        type=recorded_at_arg,
+        help="override the append timestamp (RFC 3339)",
+    )
     parser.add_argument("--dry-run", action="store_true", help="resolve and report; write nothing")
     parser.add_argument(
         "--build-cumulative",

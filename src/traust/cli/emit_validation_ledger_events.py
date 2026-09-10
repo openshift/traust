@@ -108,6 +108,7 @@ from traust.context import (
     load_engine,
     workspace_dir,
 )
+from traust.lib.event_time import recorded_at_arg, report_occurred_at
 from traust.paths import skill_dir
 
 _SOUNDNESS_PATH = skill_dir("validate-findings") / "soundness.py"
@@ -325,7 +326,7 @@ def build_events(
     """
     meta = report.get("metadata") or {}
     hv = str(meta.get("harness_version") or "0.0.0")
-    occurred_at = f"{meta.get('date', recorded_at[:10])}T00:00:00+00:00"
+    occurred_at = report_occurred_at(meta.get("date"), recorded_at)
     actor = {"kind": "machine", "identity": f"validate-findings/{hv}", "ldap_verified": False}
     source = {"type": "validation_report", "ref": report_rel, "actor": actor}
     report_rel_dir = str(Path(report_rel).parent)
@@ -789,7 +790,11 @@ def main(argv=None) -> int:
         default=None,
         help="parent workspace containing progress-tracker (default: configured workspace)",
     )
-    parser.add_argument("--recorded-at", help="override the append timestamp (ISO 8601)")
+    parser.add_argument(
+        "--recorded-at",
+        type=recorded_at_arg,
+        help="override the append timestamp (RFC 3339)",
+    )
     parser.add_argument("--dry-run", action="store_true", help="resolve and report; write nothing")
     parser.add_argument(
         "--build-cumulative",

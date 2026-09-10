@@ -241,7 +241,7 @@ Thresholds: [notes/scoring.yaml](notes/scoring.yaml).
 ### 5. Validate
 
 ```bash
-python3 <skill-base>/../pqc-readiness/pqc_facts.py \
+python3 <skill-base>/scripts/pqc_facts.py \
   --validate-readiness <slug>-pqc-readiness.json
 ```
 

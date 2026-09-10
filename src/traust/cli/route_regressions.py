@@ -71,6 +71,7 @@ from traust_engine.ledger import (
 )
 
 from traust.context import add_config_home_arg, load_engine
+from traust.lib.event_time import recorded_at_arg, report_occurred_at
 from traust.paths import HARNESS_ROOT
 
 VERIFICATION_SUFFIX = "-remediation-verification.json"
@@ -229,7 +230,7 @@ def route(
     repo_url = (audit.get("metadata") or {}).get("repository") or meta.get("repository")
     hv = harness_version()
     now = recorded_at or datetime.now(UTC).isoformat(timespec="seconds")
-    occurred_at = f"{meta.get('date', now[:10])}T00:00:00+00:00"
+    occurred_at = report_occurred_at(meta.get("date"), now)
 
     shell = {
         "metadata": {
@@ -387,7 +388,8 @@ def main(argv=None) -> int:
     )
     ap.add_argument(
         "--recorded-at",
-        help="override the ledger append timestamp (ISO 8601, for reproducible runs)",
+        type=recorded_at_arg,
+        help="override the ledger append timestamp (RFC 3339, for reproducible runs)",
     )
     ap.add_argument(
         "--no-rebuild",

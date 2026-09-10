@@ -65,6 +65,7 @@ from traust.context import (
     default_findings_roots,
     load_engine,
 )
+from traust.lib.event_time import recorded_at_arg, report_occurred_at
 from traust.paths import optional_config_path
 
 CANONICAL_FINDING_ID = re.compile(r"^[A-Z][A-Z0-9_]{0,23}-[a-f0-9]{7}-\d{3}$")
@@ -189,7 +190,9 @@ def build_events(
     """Return {events, needs_review, register, skipped}."""
     hv = harness_version(triage)
     profile, profile_source = resolve_tenancy_profile(audit, tenancy_override)
-    occurred_at = f"{triage.get('triage_completed', recorded_at[:10])}T00:00:00+00:00"
+    occurred_at = report_occurred_at(
+        triage.get("triage_completed"), recorded_at, field="triage_completed"
+    )
     actor = {"kind": "machine", "identity": f"triage/{hv}", "ldap_verified": False}
     source = {"type": "triage_report", "ref": source_ref, "actor": actor}
 
@@ -440,7 +443,11 @@ def main(argv=None) -> int:
         choices=("multi_tenant", "single_tenant"),
         help="override the artifact-derived tenancy profile",
     )
-    parser.add_argument("--recorded-at", help="override the append timestamp (ISO 8601)")
+    parser.add_argument(
+        "--recorded-at",
+        type=recorded_at_arg,
+        help="override the append timestamp (RFC 3339)",
+    )
     parser.add_argument(
         "--findings-root",
         help="findings tree that --layer, --lint and "
