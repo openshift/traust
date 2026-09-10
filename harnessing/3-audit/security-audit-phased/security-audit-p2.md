@@ -1,3 +1,7 @@
+---
+description: "Analyze prior vulnerabilities for recurring patterns and variants in the current code."
+---
+
 Perform Phase 2 (Prior Vulnerability Pattern Analysis) of the security code audit in progress.
 
 Read `$AUDIT_DIR_NAME/phase1-recon.json` from the current working directory — that is your Phase 1 input. The source code and prior vulnerability reports are in this conversation.

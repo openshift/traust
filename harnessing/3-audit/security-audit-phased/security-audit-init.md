@@ -1,3 +1,7 @@
+---
+description: "Start a phased security audit by mapping trust boundaries, privileged operations, and attack surfaces."
+---
+
 Perform Phase 1 (Reconnaissance) of a security code audit.
 
 If a path was provided after the command, read the source files at that path. Otherwise use the source code already present in this conversation.

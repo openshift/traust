@@ -1,3 +1,7 @@
+---
+description: "Analyze cross-cutting risks and vulnerability chains, then consolidate the phased audit report."
+---
+
 Perform Phase 4 (Cross-Cutting Analysis and Final Report) of the security code audit in progress.
 
 Read the following files from the current working directory before starting:

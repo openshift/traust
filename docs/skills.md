@@ -158,7 +158,7 @@ Use on the daily continuous-operations cadence, or when the user asks to "check 
 
 ## impact-analysis
 
-Determine per-repo affectedness for an advisory (CVE, GHSA, MAL-/malicious-package, or another OSV-native id) across the portfolio. Queries the portfolio graph for blast radius, then runs language-specific analysis (govulncheck + ELF reachability for Go, the strongest tier; manifest-level analyzers for npm, PyPI, Maven, Cargo, RubyGems, and NuGet; a manifest-level SurfaceAnalyzer for the universal Docker/GitHub Actions/Helm surfaces) to classify every importing repo. Emits a schema-validated artifact consumed by /triage and /verify-remediation.
+Use when determining which portfolio repositories are affected by an advisory (CVE, GHSA, MAL-/malicious-package, or another OSV-native id). Queries the portfolio graph for blast radius, then runs language-specific analysis (govulncheck + ELF reachability for Go, the strongest tier; manifest-level analyzers for npm, PyPI, Maven, Cargo, RubyGems, and NuGet; a manifest-level SurfaceAnalyzer for the universal Docker/GitHub Actions/Helm surfaces) to classify every importing repo. Emits a schema-validated artifact consumed by /triage and /verify-remediation.
 
 - **Stage:** ③ Audit
 - **Tier:** `primary`
@@ -225,7 +225,7 @@ Use when the user asks to perform a security audit, security review, or vulnerab
 
 ## security-audit-phased
 
-Multi-phase, human-in-the-loop security code audit — Phase 1 reconnaissance, Phase 2 prior-vuln pattern analysis, Phase 3 systematic CWE-taxonomy weakness hunt (including PEACH tenant isolation), Phase 4 cross-cutting analysis and final report, Phase 6 reproducer generation, plus review/CVSS/follow-up-seed helpers. Each phase is a separate slash command that reads the previous phase's JSON and writes its own.
+Use when a reviewer wants to steer a security code audit between phases — Phase 1 reconnaissance, Phase 2 prior-vuln pattern analysis, Phase 3 systematic CWE-taxonomy weakness hunt (including PEACH tenant isolation), Phase 4 cross-cutting analysis and final report, Phase 6 reproducer generation, plus review/CVSS/follow-up-seed helpers. Each phase is a separate slash command that reads the previous phase's JSON and writes its own.
 
 - **Stage:** ③ Audit
 - **Tier:** `primary`
@@ -275,7 +275,7 @@ Triage a batch of raw security findings. Verify each is real, collapse duplicate
 
 ## validate-browser-finding
 
-Run browser-based security validations (CSRF, XSS, clickjacking) against containerized labs using Playwright. Separate from validate-findings which targets K8s operators/containers.
+Use when validating browser-exploitable findings such as CSRF, XSS, or clickjacking against authorized containerized labs with Playwright. Test progressively through authentication, middleware, and ingress defenses.
 
 - **Stage:** ⑤ Validation
 - **Tier:** `primary`
@@ -380,7 +380,7 @@ Use before committing any new or edited skill to the traust repo, or when asked 
 
 ## check-harness-docs
 
-Use when adding or editing a skill, script, schema, or pipeline stage in the traust repo, or before committing any change to its docs — runs python3 -m traust.cli check docs-consistency to verify the harness's own documentation (README.md, AGENTS.md, PROCESS.md, docs/) has not drifted from the tree. Checks that "N skills / N commands / N Python scripts / N-stage" count claims match the actual tree counts, that every repo-relative Markdown link and in-repo backtick path still resolves, that inventory docs mention every skill/schema/guide, that CLI examples only use flags that exist in the invoked script's source, that every external CLI tool the harness invokes (subprocess/shutil.which/self-named --tool flags/vendored bin/ paths/command -v) has a row in docs/external-dependencies.md, and — when the gitlab-profile sibling is checked out — that the GitLab group README's harness-version and skill/command-count claims match too. Use when asked to "check the harness docs", "did I break the docs", "verify doc consistency", or "is anything stale after this change".
+Use when changing harness skills, scripts, schemas, pipeline stages, or documentation, or when checking for documentation drift before a commit. Verify counts, local paths, inventory coverage, CLI examples, external dependency records, and version consistency against the tree; update stale documentation and rerun the checks.
 
 - **Stage:** —
 - **Tier:** `ci`

@@ -469,6 +469,16 @@ python harnessing/5-validate/validate-findings/credential_liveness.py \
 
 ---
 
+## Bundled package and benchmark assets
+
+[__init__.py](__init__.py) declares this package’s public module surface.
+The [benchmark expectations](benchmark/expected.json) pair the safe and
+vulnerable manifests in [benchmark/fixtures/](benchmark/fixtures/).
+`tests/test_target_attestation.py` loads these expectations through
+`traust_engine.sweep.benchmark.load_expected` to verify scorer semantics.
+Consult the benchmark assets when maintaining the scorer; live execution
+still requires the scope and review gates below.
+
 ## Safety Controls
 
 - **Default-deny scope**: no action runs without a positive scope match. Inferred scope never includes control-plane namespaces.

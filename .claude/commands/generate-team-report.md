@@ -1,1 +1,5 @@
+---
+description: "Create a shareable security report and executive dashboard for a product or team."
+---
+
 Generate a shareable team security report for $ARGUMENTS using the generate-team-report skill. Load the skill at .claude/skills/generate-team-report/SKILL.md and follow its full procedure — map the product/team name to findings directories, extract all component-level security audit reports, and create a self-contained folder with an executive summary HTML dashboard suitable for coordination meetings.

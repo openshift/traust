@@ -19,7 +19,8 @@ repositories — keeps its tenants apart. Where `secure-code-audit` carries a
 per-repo isolation section, this skill owns the service-shaped artifact: one
 interface inventory across the whole repo set, one hardening score per
 interface, one posture verdict per service. Campaign design and phasing:
-[progress-tracker/plans/peach-isolation-lens-plan.md](../../../../progress-tracker/plans/peach-isolation-lens-plan.md).
+`plans/peach-isolation-lens-plan.md` under the configured `progress-tracker`
+root (an external workspace artifact, not bundled with this skill).
 
 ## Framework citation — PEACH, by reference ONLY (licensing rule)
 

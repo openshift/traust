@@ -24,15 +24,15 @@ count; no agent authors, adds, or reinterprets a technique reference.
 |---|---|---|
 | **observed** (score 3) | `validations/**/*validation*.json` → `attack_chains[].mitre_attack_refs` on confirmed chains | adversary behavior demonstrated against a live target |
 | **modeled** (score 2) | threat models' optional `attack_refs` column (section 4) | behavior an owner/bootstrap pass named as a threat |
-| **derived** (score 1) | audit finding categories → `tables/attack-mapping.json` `category_map` | candidate techniques implied by a weakness class — potential, not behavior |
+| **derived** (score 1) | audit finding categories → [`tables/attack-mapping.json`](tables/attack-mapping.json) `category_map` | candidate techniques implied by a weakness class — potential, not behavior |
 
 ## Shared assets (used by other skills)
 
-- `tables/attack-techniques.json` — distilled technique/mitigation table
+- [`tables/attack-techniques.json`](tables/attack-techniques.json) — distilled technique/mitigation table
   from ONE sha256-pinned ATT&CK release (`build_attack_table.py`; pin in
-  `tables/attack-bundle.sha256`). The single source every harness
+  [`tables/attack-bundle.sha256`](tables/attack-bundle.sha256)). The single source every harness
   component validates technique IDs against.
-- `tables/attack-mapping.json` — harness vocabulary → candidate technique
+- [`tables/attack-mapping.json`](tables/attack-mapping.json) — harness vocabulary → candidate technique
   IDs (`capability_map` feeds `validate-findings/chain.py`; `category_map`
   feeds this roll-up). Schema: `contracts/schemas/attack-mapping.schema.json`.
 - `attack_refs.py` — loader + validator. CLI:

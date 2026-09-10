@@ -1,3 +1,7 @@
+---
+description: "Score accepted phased-audit findings with CVSS v3.1 and Red Hat severity ratings."
+---
+
 Assess CVSS v3.1 base scores and Red Hat severity ratings for accepted findings from the security code audit in progress.
 
 Read the following files from the current working directory before starting (in this order):

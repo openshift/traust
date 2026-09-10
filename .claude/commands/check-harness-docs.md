@@ -1,1 +1,5 @@
+---
+description: "Find and correct harness documentation that has drifted from the repository."
+---
+
 Check the traust's own documentation for drift against the tree. Load the skill at .claude/skills/check-harness-docs/SKILL.md and follow its procedure — run `python3 -m traust.cli tools check-docs-consistency` (pass through any `$ARGUMENTS`, e.g. `--root DIR`). If it reports drift, fix the affected docs (README.md / AGENTS.md / PROCESS.md / docs/, and docs/skills.md for a new skill) to match the tree — never edit the computed counts in the script — then re-run until it exits 0.

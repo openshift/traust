@@ -1,3 +1,7 @@
+---
+description: "Independently review a completed security audit report and record finding dispositions."
+---
+
 Review a security audit final report.
 
 Your role is a senior security engineer challenging the auditor's work — not re-auditing the code, but assessing whether the findings are real, correctly calibrated, and complete enough to act on.

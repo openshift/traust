@@ -1,3 +1,7 @@
+---
+description: "Generate reproducers for accepted findings from the phased security audit."
+---
+
 Perform Phase 6 (Reproducer Generation) of the security code audit in progress.
 
 Read the following files from the current working directory before starting (in this order):

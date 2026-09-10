@@ -1,1 +1,5 @@
+---
+description: "Implement and verify a security fix, produce a remediation report, and push the fix to its private fork."
+---
+
 Remediate the security finding $ARGUMENTS on its private fork using the remediate-finding skill. Load the skill at .claude/skills/remediate-finding/SKILL.md and follow its full procedure — Phase 1 (workspace via run_one.sh), Phase 2 (understand root cause from triage rationale), Phase 3 (minimal patch per CWE→strategy table), Phase 4 (run_checks.sh until green), Phase 5 (emit + validate *-remediation.json), Phase 6 (push fix branch to private fork only). NEVER push to or open a PR against the public upstream repository.

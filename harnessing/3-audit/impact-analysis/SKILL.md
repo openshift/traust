@@ -1,7 +1,7 @@
 ---
 name: impact-analysis
-description: Determine per-repo affectedness for an advisory (CVE, GHSA,
-  MAL-/malicious-package, or another OSV-native id) across the portfolio.
+description: Use when determining which portfolio repositories are affected by
+  an advisory (CVE, GHSA, MAL-/malicious-package, or another OSV-native id).
   Queries the portfolio graph for blast radius, then runs language-specific
   analysis (govulncheck + ELF reachability for Go, the strongest tier;
   manifest-level analyzers for npm, PyPI, Maven, Cargo, RubyGems, and NuGet;
