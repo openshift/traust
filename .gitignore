@@ -53,3 +53,8 @@ harnessing/pqc-readiness/scripts/
 # so they are never committed. Deployments keep their copies in their private
 # configuration repository.
 harnessing/mine-ledger/rule-drafts/
+
+# /graphify knowledge-graph output (graph.json, graph.html, GRAPH_REPORT.md,
+# extraction cache and manifest). Generated from the tree by the graphify
+# skill and rebuilt on demand, so it is never repo content.
+graphify-out/
