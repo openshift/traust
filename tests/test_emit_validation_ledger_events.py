@@ -10,6 +10,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from traust_engine.ledger import compute_event_id
 from traust_engine.ledger.service import SubmitResult
 from traust_engine.reporting.validate import compute_claim_hash
 
@@ -72,6 +73,22 @@ def _vreport(validated, source_reports=()):
     }
 
 
+def _canonical_id(event):
+    """Reproduce the SDK's server-side canonical event id.
+
+    The emitters no longer stamp event_id (the SDK computes it on submit),
+    so the file-only stand-in derives it from the event's identifying fields
+    exactly as the server does.
+    """
+    disp = event.get("disposition") or {}
+    return compute_event_id(
+        event["source"]["ref"],
+        event["finding_ref"],
+        disp.get("validity"),
+        disp.get("resolution"),
+    )
+
+
 class _MockLedgerService:
     """File-only LedgerService stand-in that needs no LAAS_TOKEN."""
 
@@ -91,9 +108,9 @@ class _MockLedgerService:
         existing_ids = {e["event_id"] for e in layer.get("events", [])}
         new, seen = [], set()
         for e in events:
-            eid = e["event_id"]
+            eid = _canonical_id(e)
             if eid not in existing_ids and eid not in seen:
-                new.append(e)
+                new.append({**e, "event_id": eid})
                 seen.add(eid)
         layer.setdefault("events", []).extend(new)
         if queue_items:
@@ -279,7 +296,7 @@ class TestResolution(Workspace):
             sorted(out["per_audit"]), sorted([self.audit_path.resolve(), alias.resolve()])
         )
         # Same event id in both ledgers: same source, finding, validity.
-        ids = {b["events"][0]["event_id"] for b in out["per_audit"].values()}
+        ids = {_canonical_id(b["events"][0]) for b in out["per_audit"].values()}
         self.assertEqual(len(ids), 1)
 
     def test_claim_drift_in_mirror_is_skipped(self):
@@ -436,7 +453,8 @@ class TestMergeSemantics(Workspace):
     def _event(self, verdict):
         out = self.emit([_vfinding("FIND-001", verdict, self.foreign(self.audit_path))])
         [bucket] = out["per_audit"].values()
-        return bucket["events"][0]
+        ev = bucket["events"][0]
+        return {**ev, "event_id": _canonical_id(ev)}
 
     def test_validation_confirmed_is_execution_proven(self):
         disp = derive_disposition(_finding("FIND-001"), [self._event("confirmed")], RECORDED)

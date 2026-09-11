@@ -8,13 +8,15 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
+from traust_contracts.v1.models.layer import LayerActor
+from traust_engine.ledger import compute_event_id
 from traust_engine.ledger.service import LedgerService as _RealLedgerService
+from traust_ledger._internal.events.builders import build_human_event as _bhe
+from traust_ledger._internal.events.builders import build_severity_event as _bse
 
 from traust.cli.build_cumulative import derive_disposition
 from traust.cli.countersign import (
     RATIONALE_PLACEHOLDER,
-    build_human_event,
-    compute_event_id,
     discover_pending,
     parse_annotated_queue,
     record_decisions,
@@ -33,6 +35,13 @@ ACTOR = {
 }
 
 
+def build_human_event(finding_ref, decision, rationale, actor, recorded_at):
+    """Event construction now lives in the ledger SDK; wrap it for the tests."""
+    if isinstance(actor, dict):
+        actor = LayerActor(**actor)
+    return _bhe(finding_ref, decision, rationale, actor, recorded_at).to_dict()
+
+
 _real_key = _RealLedgerService.review_item_key
 
 
@@ -41,53 +50,64 @@ def _write_layer(path, data):
 
 
 @pytest.fixture(autouse=True)
-def _no_ledger_token():
-    """Mock LedgerService so unit tests don't need LAAS_TOKEN."""
+def _fake_ledger():
+    """Faithful in-process fake of the ledger SDK (no LAAS_TOKEN/signing).
+
+    countersign builds the event through the ledger SDK's real builders and
+    appends it to the layer file, exactly as the gated `countersign` verb
+    would; read/patch/resolve operate on the real file. Gate enforcement is
+    the SDK's concern and is tested there.
+    """
 
     def _fake_resolve(layer_path, key, decision, note=""):
-        data = json.loads(layer_path.read_text())
+        data = json.loads(Path(layer_path).read_text())
         for item in data.get("needs_review", []):
             if _real_key(item) == key:
                 item["status"] = decision
                 if note:
                     item["resolution_note"] = note
                 break
-        _write_layer(layer_path, data)
-
-    def _fake_submit(layer_path, events, **_kw):
-        # Emulates the SDK submit handler: dedup by event_id, stamp the
-        # (token) actor — here the event's own, since there is no token —
-        # and mark identity_verified the way the verifier would.
-        data = json.loads(layer_path.read_text())
-        have = {e["event_id"] for e in data["events"]}
-        for ev in events:
-            if ev["event_id"] in have:
-                continue
-            actor = dict((ev.get("source") or {}).get("actor") or {})
-            actor.setdefault("identity_verified", True)
-            ev = {**ev, "source": {**ev["source"], "actor": actor}}
-            data["events"].append(ev)
-            have.add(ev["event_id"])
-        _write_layer(layer_path, data)
+        _write_layer(Path(layer_path), data)
 
     def _fake_patch(layer_path, updates, **_kw):
-        data = json.loads(layer_path.read_text())
+        data = json.loads(Path(layer_path).read_text())
         meta = data.setdefault("metadata", {})
         for k, v in updates.items():
             if isinstance(v, dict) and isinstance(meta.get(k), dict):
                 meta[k].update(v)
             else:
                 meta[k] = v
-        _write_layer(layer_path, data)
+        _write_layer(Path(layer_path), data)
+
+    def _fake_countersign(
+        layer_path,
+        finding_ref,
+        *,
+        rationale,
+        recorded_at,
+        decision=None,
+        severity=None,
+        actor=None,
+    ):
+        if isinstance(actor, dict):
+            actor = LayerActor(**actor)
+        if severity is not None:
+            ev = _bse(finding_ref, severity, rationale, actor, recorded_at)
+        else:
+            ev = _bhe(finding_ref, decision, rationale, actor, recorded_at)
+        data = json.loads(Path(layer_path).read_text())
+        payload = ev.to_dict()
+        if payload["event_id"] not in {e["event_id"] for e in data["events"]}:
+            data["events"].append(payload)
+            _write_layer(Path(layer_path), data)
+        return {"status": "accepted"}
 
     with patch("traust.cli.countersign.LedgerService") as mock_cls:
         mock_cls.review_item_key = _real_key
         inst = MagicMock()
         inst.resolve_review_item.side_effect = _fake_resolve
-        inst.submit_events.side_effect = _fake_submit
         inst.patch_layer_file.side_effect = _fake_patch
-        inst.store_layer.side_effect = AssertionError("countersign must not use store_layer")
-        inst.sign.side_effect = AssertionError("countersign must not sign directly")
+        inst.countersign.side_effect = _fake_countersign
         mock_cls.return_value = inst
         yield
 
@@ -345,10 +365,10 @@ class TestRecording(unittest.TestCase):
                 }
             ]
             record_decisions(dec, ACTOR, NOW, root=Path(tmp))
-            receipt = record_decisions(dec, ACTOR, NOW, root=Path(tmp))
+            record_decisions(dec, ACTOR, NOW, root=Path(tmp))
             layer = json.loads(lp.read_text())
+        # same signer + day + decision dedupes in the SDK — no second event
         self.assertEqual(len(layer["events"]), 2)
-        self.assertTrue(any("duplicate" in r for r in receipt))
 
     def test_defer_records_nothing(self):
         with tempfile.TemporaryDirectory() as tmp:

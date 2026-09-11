@@ -9,6 +9,7 @@ import fleet_sweep as fs
 import pytest
 from traust_engine.ledger import (
     compute_claim_hash,
+    compute_event_id,
     stamp_report_reference,
 )
 from traust_engine.ledger.service import LedgerService as _RealLedgerService
@@ -46,9 +47,18 @@ def _mock_ledger_service():
             existing = layer.get("events") or []
             existing_ids = {e.get("event_id") for e in existing}
             for ev in events:
-                if ev.get("event_id") not in existing_ids:
-                    existing.append(ev)
-                    existing_ids.add(ev.get("event_id"))
+                # The emitter no longer stamps event_id; the SDK computes the
+                # canonical id server-side, which the stand-in reproduces.
+                disp = ev.get("disposition") or {}
+                eid = compute_event_id(
+                    ev["source"]["ref"],
+                    ev["finding_ref"],
+                    disp.get("validity"),
+                    disp.get("resolution"),
+                )
+                if eid not in existing_ids:
+                    existing.append({**ev, "event_id": eid})
+                    existing_ids.add(eid)
             layer["events"] = existing
             hashes = layer.setdefault("metadata", {}).setdefault("claim_hashes", {})
             for ev in events:

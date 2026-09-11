@@ -15,7 +15,7 @@ description: Review and sign off pending human decisions in the findings
   queue", "downgrade/upgrade this finding's severity", "reclassify this
   finding", or "this finding is actually a false positive / actually
   real".
-argument-hint: "[<findings-root>|<product>/<repo>] [--identity <token-holder>]"
+argument-hint: "[<findings-root>|<product>/<repo>]"
 user-invocable: true
 metadata:
   harness.tier: "primary"
@@ -79,10 +79,9 @@ and stop.
 ### 2. Identify the signer
 
 No identity prompt: the signer is whoever holds the ledger identity token
-(`ledger auth status` shows it). `--identity` is optional and only a sanity
-check — it must name the token holder. Verification happens once, at
-recording time, inside the SDK. Tell the user recording will be refused
-without a verifiable token (`ledger auth login` for an OIDC provider,
+(`ledger auth status` shows it). Verification happens once, at recording
+time, inside the SDK. Tell the user recording will be refused without a
+verifiable token (`ledger auth login` for an OIDC provider,
 `ledger auth local --identity <you>` for a local identity).
 
 ### 3. Present ONE card per question

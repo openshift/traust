@@ -42,17 +42,6 @@ def test_resolve_actor_returns_token_holder(monkeypatch):
     assert a["identity_provider"] == "oidc"
 
 
-@pytest.mark.parametrize("given", ["alice@example.com", "ALICE", "alice"])
-def test_identity_arg_matching_token_is_accepted(given):
-    with _with_actor(HUMAN):
-        assert cs.resolve_actor(given)["identity"] == "alice@example.com"
-
-
-def test_identity_arg_naming_someone_else_is_refused():
-    with _with_actor(HUMAN), pytest.raises(RuntimeError, match="does not match"):
-        cs.resolve_actor("bob")
-
-
 def test_no_token_is_refused():
     with _with_actor(None), pytest.raises(RuntimeError, match="no verifiable"):
         cs.resolve_actor()
@@ -143,12 +132,18 @@ from tests.test_countersign import REF
 def _fixture(tmp: Path) -> Path:
     """Reuse test_countersign's audit/layer shapes (a real refuted finding
     awaiting sign-off) so the cumulative rebuild has everything it needs."""
+    from traust_ledger.client import LedgerClient
+
     from tests.test_countersign import _audit, _layer  # fixtures stay module-local
 
     d = tmp / "findings" / "prod" / "t"
     d.mkdir(parents=True)
     (d / "t-security-audit.json").write_text(json.dumps(_audit(REF)))
     (d / "t-findings-layer.json").write_text(json.dumps(_layer(REF)))
+    # Stamp Merkle metadata so this is a realistic already-signed ledger: the
+    # SDK countersign verb appends to a rooted layer (valid_epoch gate), exactly
+    # as production layers are — the triage/validation emitters sign on write.
+    LedgerClient(token="test-token", data_dir=str(d)).sign("t-findings-layer")
     return d / "t-findings-layer.json"
 
 
@@ -298,7 +293,7 @@ def test_end_to_end_submit_stamps_token_actor_and_signs(tmp_path):
             "--decision",
             "false_positive",
             "--rationale",
-            "concur",
+            "concur with the refutation",
             "--root",
             str(tmp_path / "findings"),
         ],
@@ -319,30 +314,3 @@ def test_end_to_end_submit_stamps_token_actor_and_signs(tmp_path):
         humans["smoketest"].get("employee_status") is None
     )  # recorded before the directory was configured
     env.pop("LEDGER_DIRECTORY_COMMAND")
-
-    # --identity naming someone else is refused before anything is written
-    r3 = subprocess.run(
-        [
-            sys.executable,
-            "-m",
-            "traust.cli.countersign",
-            "record",
-            "--layer",
-            str(lp),
-            "--finding",
-            REF,
-            "--identity",
-            "mallory",
-            "--decision",
-            "keep_open",
-            "--rationale",
-            "no",
-            "--root",
-            str(tmp_path / "findings"),
-        ],
-        env=env,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    assert r3.returncode == 1 and "does not match" in r3.stderr

@@ -57,7 +57,6 @@ from traust_engine._util.layer_paths import (
 from traust_engine.ledger import (
     FINGERPRINT_ALGO_CURRENT,
     aliases_from_events,
-    attach_identity,
     check_report_digest,
     compute_claim_hash,
     findings_from_events,
@@ -731,19 +730,19 @@ def main(argv=None):
     # through metadata.finding_aliases (a mutable table, outside the tree, with
     # no verifier). Backfills historical events too — they are observations, and
     # the identity they observed is whatever the audit report records for that
-    # finding. Existing values are never overwritten.
-    _idx = fingerprint_index(audit)
-    _stamped = sum(1 for e in layer.get("events") or [] if attach_identity(e, _idx))
+    # finding. Existing values are never overwritten. The SDK stamps + signs in
+    # one atomic write — the skill never writes the layer itself (Gate A16).
+    ledger = engine.ledger.service(data_dir=layer_path.parent)
+    layer_path.parent.mkdir(parents=True, exist_ok=True)
+    _stamped = ledger.stamp_event_identities(layer_path, fingerprint_index(audit))
     if _stamped:
         print(
             f"identity: stamped {_stamped} event(s) with fingerprint ({FINGERPRINT_ALGO_CURRENT})",
             file=sys.stderr,
         )
-
-    ledger = engine.ledger.service(data_dir=layer_path.parent)
-    layer_path.parent.mkdir(parents=True, exist_ok=True)
-    ledger.store_layer(layer_path, layer)
-    ledger.sign(layer_path)
+    # Re-read the signed on-disk layer so the cumulative report reflects exactly
+    # what was signed (identity now stamped onto the events).
+    layer = ledger.read_layer_file(layer_path)
 
     generated_at = args.generated_at or datetime.now(UTC).isoformat(timespec="seconds")
 
