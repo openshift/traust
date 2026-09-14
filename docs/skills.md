@@ -314,7 +314,7 @@ Use when the user wants to remediate a SYSTEMIC pattern (one weakness class × N
 
 ## patch
 
-Generate candidate fixes for verified security findings. Consumes <repo>-triage.json (preferred; legacy TRIAGE.json accepted), a <repo>-security-audit.json report, *-vuln-findings.json (or legacy VULN-FINDINGS.json), *-pqc-facts.json (actionable first-party PQC blockers only), or an external vuln-pipeline results directory. Pipeline input is delegated to the execution-verified `vuln-pipeline patch` ladder; static-analysis input gets a per-finding patch subagent + independent reviewer and is written as inert diffs for human review. Writes PATCHES/bug_NN/{patch.diff,patch_result.json}, PATCHES.md, and PATCHES.json. Use when asked to "fix the findings", "patch these vulns", "generate fixes", or "close the loop on triage".
+Generate candidate fixes for verified security findings. Consumes <repo>-triage.json (preferred; legacy TRIAGE.json accepted), a <repo>-security-audit.json report, *-vuln-findings.json (or legacy VULN-FINDINGS.json), *-pqc-facts.json (actionable first-party PQC blockers only), or an external vuln-pipeline results directory. Pipeline input is delegated to the execution-verified `vuln-pipeline patch` ladder; static-analysis input gets a per-finding patch subagent + independent reviewer and is written as inert diffs and git-am-ready patches for human review. Writes PATCHES/bug_NN/{patch.diff,patch.patch,patch_result.json}, PATCHES.md, and PATCHES.json. Use when asked to "fix the findings", "patch these vulns", "generate fixes", or "close the loop on triage".
 
 - **Stage:** ⑦ Remediation
 - **Tier:** `primary`

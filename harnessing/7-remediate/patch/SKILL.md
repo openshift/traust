@@ -7,8 +7,9 @@ description: Generate candidate fixes for verified security findings. Consumes
   vuln-pipeline results directory.
   Pipeline input is delegated to the execution-verified
   `vuln-pipeline patch` ladder; static-analysis input gets a per-finding
-  patch subagent + independent reviewer and is written as inert diffs for
-  human review. Writes PATCHES/bug_NN/{patch.diff,patch_result.json},
+  patch subagent + independent reviewer and is written as inert diffs and
+  git-am-ready patches for human review. Writes
+  PATCHES/bug_NN/{patch.diff,patch.patch,patch_result.json},
   PATCHES.md, and PATCHES.json. Use when asked to "fix the findings",
   "patch these vulns", "generate fixes", or "close the loop on triage".
 argument-hint: "<findings-path> [--repo PATH] [--top N] [--id fNNN] [--model M] [--fresh]"
@@ -23,6 +24,7 @@ allowed-tools:
   - Task
   - Bash(python3 *-m traust.cli.checkpoint:*)
   - Bash(vuln-pipeline patch:*)
+  - Bash(git:*)
   - Bash(rg:*)
   - Bash(grep:*)
   - Bash(ls:*)
@@ -44,8 +46,10 @@ Third leg of the static pipeline (`/secure-code-audit` or `/vuln-scan` →
 `/triage` → `/patch`). Turns a ranked list of verified findings into
 candidate diffs.
 
-The skill **never applies a diff** to the target repo. Output is inert text
-in `./PATCHES/` for a human to review and apply out-of-band. There is no
+The skill **never modifies the target repo**. Subagents edit disposable
+git worktrees, and the resulting diffs and `git am`-ready patches are
+captured as inert text in `./PATCHES/` for a human to review and apply
+out-of-band. There is no
 `--apply` or `--approve` flag by design: the capability isn't present, so
 it can't be prompt-injected into use. (For patches on private forks with
 build/test verification, use the harness's `remediate-finding` skill
@@ -68,8 +72,9 @@ Invoke with `/patch <findings-path> [--repo PATH] [--top N] [--id fNNN]
   output), an external
   vuln-pipeline `results/<target>/<ts>/` directory, or any JSON the `/triage`
   ingest table recognizes.
-- `--repo PATH`: target codebase, read-only (default cwd). Required for
+- `--repo PATH`: target codebase (default cwd). Required for
   static mode; the skill stops if cited files don't resolve under it.
+  The repo itself is never modified — edits go into disposable worktrees.
 - `--top N`: patch only the N highest-severity true positives (static
   mode), ranked on the shared enum: critical > high > medium > low >
   informational (match case-insensitively; legacy inputs may use
@@ -86,15 +91,17 @@ Invoke with `/patch <findings-path> [--repo PATH] [--top N] [--id fNNN]
 provision Glob or Grep; `allowed-tools` is a permission filter, not a loader.
 When they are unavailable, fall back to the read-only Bash commands
 whitelisted above: `rg`/`grep` for search, `ls` for enumeration,
-`head`/`file`/`wc` for sniffing, `jq` for JSON ingest. Bash is otherwise
-permitted only for `python3 -m traust.cli admin checkpoint` (state I/O)
-and `vuln-pipeline patch` (execution-verified delegate). `find` is NOT
+`head`/`file`/`wc` for sniffing, `jq` for JSON ingest, `git` for worktree
+management and diff generation. Bash is also permitted for
+`python3 -m traust.cli admin checkpoint` (state I/O) and
+`vuln-pipeline patch` (execution-verified delegate). `find` is NOT
 permitted.
 
-**Write scope.** The Write tool may target ONLY paths under `./PATCHES/` and
-`./.patch-state/`. Never write into `--repo`, never `git apply`, never
-`patch`, never edit target source. If a step seems to require it, the step is
-wrong.
+**Write scope.** The orchestrator may Write ONLY to `./PATCHES/` and
+`./.patch-state/`. Never write into `--repo` directly. Source edits go
+into disposable git worktrees created under `/tmp/` — these are removed
+after the diff is captured. `git apply --check` (dry-run validation) is
+permitted for validating diffs against `--repo`.
 
 ---
 
@@ -266,6 +273,10 @@ resolves under repo (try as-given, then with common prefixes stripped). If
 none resolve, **stop**: tell the user the cited files aren't reachable and
 suggest a `--repo` value.
 
+Confirm `--repo` is a git repository: Bash:
+`git -C <repo> rev-parse --git-dir`. If this fails, **stop** and tell the
+user `--repo` must be a git repository (diff validation requires it).
+
 **Checkpoint:** Write tool → `./.patch-state/_chunk.tmp`:
 `{"phase": 1, "mode": ..., "findings": [...], "skipped": [...], "repo": ...}`
 Then Bash:
@@ -312,20 +323,40 @@ One Task per finding, all in a SINGLE assistant message for parallel
 execution. `subagent_type: "general-purpose"`. Never set
 `run_in_background` — you need the diff text, not an async handle.
 
-Each subagent has read-only access to `--repo`. It cannot modify the target;
-it emits the diff as text in its response. The orchestrator writes that text
-to `PATCHES/bug_NN/patch.diff`.
+Each subagent gets a dedicated disposable git worktree. It edits files
+there to implement the fix, stages the changes, captures `git diff
+--cached` for the raw diff, commits with a structured message carrying
+the finding metadata, and runs `git format-patch -1 --stdout` to produce
+a `git am`-ready patch. Both artifacts are written to `PATCHES/bug_NN/`.
+This eliminates corrupt hand-crafted diffs — git-generated output always
+has structurally valid unified diffs.
+
+#### Worktree setup (orchestrator, before spawning subagents)
+
+For each finding, create a detached worktree:
+
+```
+git -C <repo> worktree add /tmp/patch-wt-<id> HEAD --detach
+```
+
+Each finding gets its own worktree path (e.g., `/tmp/patch-wt-f001`) so
+subagents can run concurrently without conflicts.
 
 #### Patch subagent prompt (assemble once, reuse per finding)
 
 ```
 You are conducting authorized security research as part of a defensive
-assessment. Your task: write a candidate fix for ONE verified vulnerability
-finding in a codebase you have read-only access to.
+assessment. Your task: implement a candidate fix for ONE verified
+vulnerability finding in a dedicated worktree.
 
-You may use Read, Glob, and Grep ONLY on paths inside {REPO_PATH}. You may
-NOT build, run, install, edit files on disk, or reach the network. You will
-emit the fix as a unified diff in your final response; you will NOT apply it.
+You have a disposable worktree at {WORKTREE_PATH} — a copy of the target
+repo. You may Read, Edit, Write, and Grep files in this worktree. You may
+also Read files in {REPO_PATH} (the original repo) for reference. You may
+NOT build, run, install, or reach the network.
+
+After implementing the fix, stage all changes, capture the raw diff,
+commit with a structured message, and generate a `git format-patch`
+patch. Return both outputs.
 
 ────────────────────────────────────────────────────────────────────────
 FINDING:
@@ -346,9 +377,9 @@ FINDING:
 ────────────────────────────────────────────────────────────────────────
 PROCEDURE:
 
-1. READ THE CODE. Open {file} at line {line} and the surrounding function.
-   Understand what the code does — do not trust the finding's description as
-   the only source.
+1. READ THE CODE. Open {WORKTREE_PATH}/{file} at line {line} and the
+   surrounding function. Understand what the code does — do not trust the
+   finding's description as the only source.
 
 2. ROOT CAUSE FIRST. Trace backward from the cited sink to where the bad
    value or missing check originates. The fix usually belongs there, not at
@@ -357,32 +388,49 @@ PROCEDURE:
 3. VARIANT HUNT. Grep for sibling call sites with the same pattern. Your fix
    should cover all of them, or your rationale should say why not.
 
-4. MINIMAL DIFF. Smallest change that fixes the root cause. No refactoring,
-   no drive-by cleanup, no reformatting, no comment-only changes. Match the
-   surrounding code's style (brace placement, naming, error handling).
+4. IMPLEMENT THE FIX. Edit files in {WORKTREE_PATH} to make the smallest
+   change that fixes the root cause. No refactoring, no drive-by cleanup,
+   no reformatting, no comment-only changes. Match the surrounding code's
+   style (brace placement, naming, error handling).
 
-5. ADVERSARIAL SELF-CHECK. Re-read your diff as an attacker. Name one input
-   variation that would reach the same bad state without tripping your
+5. ADVERSARIAL SELF-CHECK. Re-read your changes as an attacker. Name one
+   input variation that would reach the same bad state without tripping your
    change. If you can name one, your fix is at the wrong layer — go back to
    step 2.
 
-6. REGRESSION TEST. As part of the diff, add ONE test case that fails before
-   your change and passes after — placed wherever the project keeps its
-   tests (look for test_*/, *_test.*, tests/, spec/). If no test directory
-   exists, omit the test and say so in <test_note>.
+6. REGRESSION TEST. Add ONE test case that fails before your change and
+   passes after — placed wherever the project keeps its tests (look for
+   test_*/, *_test.*, tests/, spec/). If no test directory exists, omit the
+   test and say so in <test_note>.
+
+7. STAGE AND COMMIT.
+   a. Stage all changes: `git -C {WORKTREE_PATH} add -A`
+   b. Commit with a structured message. Use the template below,
+      substituting the finding's values and your analysis results.
+      Write the message to a temp file and commit with `-F`:
+
+        fix({category}): {title}
+
+        Finding-Id: {id}
+        Severity: {severity}
+        Location: {file}:{line}
+
+        {1-2 sentence rationale — root cause location and what the fix enforces}
+
+        Variants-Checked: {brief list of file:function pairs checked}
+        Test-Note: {where the test landed, or why omitted}
+
+   c. Report the resulting commit SHA from the git output.
+
+   Do NOT return the diff or patch content — the orchestrator will export
+   them directly from this worktree commit via shell redirection, avoiding
+   text round-trip corruption.
 
 ────────────────────────────────────────────────────────────────────────
-OUTPUT — your final response MUST contain exactly these tags. Emit the diff
-verbatim between the markers; do NOT wrap it in ``` fences.
+OUTPUT — your final response MUST contain exactly these tags.
 
-<patch_diff>
---- a/path/to/file
-+++ b/path/to/file
-@@ ... @@
- context line
--removed line
-+added line
-</patch_diff>
+<commit_sha>{the full 40-character SHA printed by git commit, or NONE if
+no patch is appropriate}</commit_sha>
 <rationale>what changed and why, mechanically — file:line of root cause,
 what the change enforces</rationale>
 <variants_checked>file:function pairs you grepped for the same
@@ -395,7 +443,7 @@ added</test_note>
 If you determine the finding is NOT fixable as described (wrong file, code
 already patched, finding is a false positive), emit:
 
-<patch_diff>NONE</patch_diff>
+<commit_sha>NONE</commit_sha>
 <rationale>why no patch is appropriate</rationale>
 ```
 
@@ -453,10 +501,10 @@ image) rather than relying on version assertions in the recipe.
 #### Spawn
 
 For each finding in `findings[]`, build a Task call with the prompt above
-(substituting `{REPO_PATH}`, `{id}`, `{file}`, `{line}`, `{category}`,
-`{severity}`, `{title}`, `{description}`, `{recommendation}`, and the
-optional `DOMAIN KNOWLEDGE` section from the enrichment step).
-`description: "patch {id}"`.
+(substituting `{REPO_PATH}`, `{WORKTREE_PATH}`, `{id}`, `{file}`,
+`{line}`, `{category}`, `{severity}`, `{title}`, `{description}`,
+`{recommendation}`, and the optional `DOMAIN KNOWLEDGE` section from the
+enrichment step). `description: "patch {id}"`.
 
 If `len(findings) > ~40`, shard into sequential batches of ~40 (each batch
 one message). Per-finding shard checkpoint after each result is parsed.
@@ -472,19 +520,54 @@ for the whole batch:
     10) and use the synchronous results.
 The same recovery applies to reviewer subagents in Phase 3.
 
-#### Parse
+#### Parse, export, and validate
 
-From each Task result, extract the five tagged blocks. Tolerate leading/
-trailing whitespace, stray ``` fences, and HTML-escaped entities (`&lt;`
-`&gt;` `&amp;` — some runtimes escape angle brackets in notification
-payloads; unescape before writing the diff). If `<patch_diff>` is `NONE` or
-empty,
-mark `status: "no_patch"`. Otherwise write the diff text to
-`./PATCHES/bug_NN/patch.diff` (NN = zero-padded index in sorted order) and
-record `rationale`, `variants_checked`, `bypass_considered`, `test_note`.
+From each Task result, extract the five tagged blocks (`commit_sha`,
+`rationale`, `variants_checked`, `bypass_considered`, `test_note`).
+Tolerate leading/trailing whitespace, stray ``` fences, and
+HTML-escaped entities (`&lt;` `&gt;` `&amp;` — some runtimes escape
+angle brackets in notification payloads; unescape before using). If
+`<commit_sha>` is `NONE` or empty, mark `status: "no_patch"`. Otherwise
+proceed to export and validation:
+
+**Export from worktree** (runs for every non-NONE `<commit_sha>`):
+
+The orchestrator exports the diff and patch **directly** from the
+subagent's worktree commit via Bash shell redirection. This bypasses
+the LLM text boundary entirely — git writes the bytes straight to disk,
+eliminating the context-line corruption that occurs when diff content is
+returned as subagent text and re-written via the Write tool.
+
+1. Bash: `git -C /tmp/patch-wt-<id> diff HEAD~1 > ./PATCHES/bug_NN/patch.diff`
+2. Bash: `git -C /tmp/patch-wt-<id> format-patch -1 --stdout > ./PATCHES/bug_NN/patch.patch`
+   (NN = zero-padded index in sorted order.)
+
+**Diff validation** (runs after export):
+
+3. Bash: `git -C <repo> apply --check ./PATCHES/bug_NN/patch.diff`
+   (`--check` is a dry-run: it confirms the diff would apply cleanly
+   without modifying any files.)
+4. **Exit 0 (pass):** Set `diff_validated: true`.
+   Record `rationale`, `variants_checked`, `bypass_considered`, `test_note`.
+5. **Non-zero (fail):** Since the diff was exported directly by git (not
+   round-tripped through text), a validation failure is unexpected —
+   likely a worktree state issue. Leave the exported files in place
+   (consumers may want to inspect them). Set `diff_validated: false`,
+   `diff_error: "<stderr>"`, `status: "bad_diff"`.
+
+#### Worktree cleanup (orchestrator, after export and validation)
+
+After exporting and validating all diffs, clean up every worktree:
+
+```
+git -C <repo> worktree remove --force /tmp/patch-wt-<id>
+```
+
+Run cleanup for all findings, including those with `status: "no_patch"`.
 
 **Checkpoint per finding:** Write tool → `./.patch-state/_chunk.tmp` =
-`{"id": ..., "bug_nn": "NN", "status": ..., "rationale": ..., ...}`, then Bash:
+`{"id": ..., "bug_nn": "NN", "status": ..., "diff_validated": ..., "diff_error": ..., "rationale": ..., ...}`,
+then Bash:
 `python3 -m traust.cli admin checkpoint shard ./.patch-state <id> --from ./.patch-state/_chunk.tmp`.
 After all findings, write the consolidated phase payload to `_chunk.tmp` then:
 `python3 -m traust.cli admin checkpoint save ./.patch-state 2 generate --from ./.patch-state/_chunk.tmp`
@@ -537,10 +620,8 @@ LOCATION: {file}:{line}
 CATEGORY: {category}
 
 DIFF UNDER REVIEW:
-<diff>
-{diff_text — or, for diffs over ~50 lines, replace this block with:
-"Read the diff at ./PATCHES/bug_NN/patch.diff" and let the reviewer Read it}
-</diff>
+
+Read the diff at ./PATCHES/bug_NN/patch.diff using the Read tool.
 
 ────────────────────────────────────────────────────────────────────────
 ANSWER FOUR QUESTIONS:
@@ -574,7 +655,8 @@ style >= 5. Otherwise REJECT.
 
 #### Spawn and parse
 
-One Task per finding with `status != "no_patch"`. Parse the trailing block.
+One Task per finding with `status != "no_patch"` and `status != "bad_diff"`.
+Parse the trailing block.
 Attach `review`, `style_score`, `out_of_scope_hunks`, `review_reason` to the
 finding. Set `verified: "static_review_only"` for every static-mode result
 regardless of ACCEPT/REJECT — the label describes the verification class,
@@ -614,6 +696,9 @@ For each finding (both modes), Write
   "bypass_considered": "...",
   "test_note": "...",
   "review_reason": "...",
+  "diff_validated": true,
+  "diff_error": null,
+  "diff_retry_count": 0,
   "verdict": { "t0_builds": true, "...": "(exec mode only, from pipeline)" }
 }
 ```
@@ -621,6 +706,8 @@ For each finding (both modes), Write
 In exec mode, also Read the pipeline's
 `<findings_path>/reports/bug_NN/patch.diff` and Write its bytes to
 `./PATCHES/bug_NN/patch.diff` so both modes land in the same place.
+(Exec mode does not produce `patch.patch` — the pipeline does not create
+commits; only `patch.diff` is copied.)
 
 ### 4b. `./PATCHES.json`
 
@@ -635,6 +722,7 @@ In exec mode, also Read the pipeline's
     "no_patch": 0,
     "accepted": 0,
     "rejected": 0,
+    "bad_diff": 0,
     "ladder_passed": 0
   },
   "findings": [ { ...patch_result.json shape... } ]
@@ -674,7 +762,8 @@ severity). Write `./.patch-state/_chunk.tmp`:
 
 `{file}:{line}` · {category} · owner: {owner_hint or "?"}
 **Status:** {verified} · review {review or "n/a"} · style {style_score or "n/a"}/10
-**Diff:** `PATCHES/bug_{NN}/patch.diff` ({hunk count} hunks, {line count} lines)
+**Diff:** `PATCHES/bug_{NN}/patch.diff` ({hunk count} hunks, {line count} lines) — {if diff_validated:}validated{else:}INVALID: {diff_error}{endif}
+**Patch:** `PATCHES/bug_{NN}/patch.patch` (git-am-ready, includes commit message with finding metadata)
 
 **Rationale:** {rationale}
 **Variants checked:** {variants_checked}
@@ -689,8 +778,9 @@ severity). Write `./.patch-state/_chunk.tmp`:
 
 Then `checkpoint.py append ./PATCHES.md --from ./.patch-state/_chunk.tmp`.
 
-**Step 3 — footer.** Append a `## Skipped` table for findings with no `file`
-or `status == "no_patch"`, one line each with the reason.
+**Step 3 — footer.** Append a `## Skipped` table for findings with no `file`,
+`status == "no_patch"`, or `status == "bad_diff"`, one line each with the
+reason.
 
 **Checkpoint (final):** Bash:
 `python3 -m traust.cli admin checkpoint done ./.patch-state 4`
@@ -705,6 +795,7 @@ Patches generated ({mode} mode): {N} findings → {M} diffs.
   Accepted:  {n}   {title of top accepted}
   Rejected:  {n}
   No patch:  {n}
+  Bad diff:  {n}
   {if exec:} Ladder passed: {n}/{M}
 
 Wrote ./PATCHES/bug_NN/, ./PATCHES.md, ./PATCHES.json
@@ -715,9 +806,12 @@ Wrote ./PATCHES/bug_NN/, ./PATCHES.md, ./PATCHES.json
 
 ## Guard rails
 
-- **The skill never applies diffs.** No `git apply`, no `patch`, no Edit
-  against `--repo`. If you find yourself needing to, the design is wrong.
-- **Write only under `./PATCHES/` and `./.patch-state/`.**
+- **Never modify `--repo` directly.** All source edits go into disposable
+  git worktrees under `/tmp/`. Worktrees are removed after the diff is
+  captured. `git apply --check` (dry-run validation) is permitted for
+  validating diffs against `--repo`.
+- **Orchestrator writes only under `./PATCHES/` and `./.patch-state/`.**
+  Subagents may write to their assigned worktree paths.
 - **Reviewer isolation.** The reviewer prompt receives `{file, line,
   category, diff}` and nothing else from the finding. Do not pass it
   `description`, `recommendation`, `exploit_scenario`, or the patch author's
@@ -771,9 +865,11 @@ Expected: delegates to `vuln-pipeline patch`, surfaces
   the triage JSON carries it through verbatim since harness 0.37.0. It is a
   hint only — the subagent's procedure is root-cause-first, and the
   reviewer never sees it (see reviewer isolation).
-- **Static mode emits a regression test inside the diff** rather than
-  running it. The skill cannot execute target code (constraint of the
-  static pipeline); the test is for the human who applies the diff.
+- **Static mode includes a regression test in the diff** rather than
+  running it. Subagents edit test files in the worktree alongside the fix;
+  `git diff` captures both. The skill cannot execute target code
+  (constraint of the static pipeline); the test is for the human who
+  applies the diff.
 - **Reviewer never sees finding prose.** Target source can contain
   injected instructions that survive into a scanner's `description` field.
   The patch author sees that prose (it has to, to know what to fix); the
@@ -783,7 +879,26 @@ Expected: delegates to `vuln-pipeline patch`, surfaces
   ACCEPT/REJECT. `ladder_passed`/`ladder_failed` means "ASAN decided."
   Downstream tooling should branch on this field, not on `review`.
 - **Output shape matches the pipeline** (`PATCHES/bug_NN/{patch.diff,
-  patch_result.json}`) so consumers don't care which mode produced it.
+  patch.patch,patch_result.json}`) so consumers don't care which mode
+  produced it. `patch.diff` is a raw unified diff for `git apply`;
+  `patch.patch` is a `git format-patch` output for `git am` — same code
+  changes, but the patch carries a commit message with finding metadata
+  (id, severity, location, rationale). Exec mode only produces
+  `patch.diff` (the pipeline does not create commits).
+- **Diffs and patches are generated by git and exported directly to
+  disk.** Subagents edit files in a disposable worktree, stage with
+  `git add -A`, and commit with a structured message carrying finding
+  metadata. The orchestrator then exports `git diff HEAD~1` and
+  `git format-patch -1 --stdout` from the worktree commit directly to
+  `PATCHES/bug_NN/` via Bash shell redirection — git writes the bytes
+  straight to disk, never passing through the LLM text boundary. This
+  eliminates two historical failure modes: (1) hand-crafted diffs with
+  corrupt hunk headers, wrong line counts, or missing leading spaces on
+  blank context lines (solved by using git to generate diffs), and
+  (2) context-line corruption when diff content was returned as subagent
+  text and re-written via the Write tool (solved by the direct export).
+  `git apply --check` still validates the result as a safety net — it is
+  a read-only probe that never modifies the target repo.
 
 ---
 
