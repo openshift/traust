@@ -54,7 +54,7 @@ spec:
         path-context
       name: dockerfile
       type: string
-    - default: "false"
+    - default: "true"
       description: Skip checks against built image
       name: skip-checks
       type: string
